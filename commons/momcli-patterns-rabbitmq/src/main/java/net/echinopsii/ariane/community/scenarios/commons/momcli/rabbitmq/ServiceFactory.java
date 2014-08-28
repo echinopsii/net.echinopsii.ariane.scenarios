@@ -55,7 +55,7 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
         MomConsumer consumer     = null;
 
         if (connection != null && connection.isOpen()) {
-            requestActor = momClient.getActorFactory().actorOf(MsgWorkerActor.props(requestCB), source + "_msgWorker");
+            requestActor = momClient.getActorFactory().actorOf(MsgWorkerActor.props(momClient, requestCB), source + "_msgWorker");
             final ActorRef runnableReqActor   = requestActor;
 
             consumer = new MomConsumer() {

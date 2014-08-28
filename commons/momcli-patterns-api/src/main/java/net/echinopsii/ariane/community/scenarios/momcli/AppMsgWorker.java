@@ -24,6 +24,7 @@ public interface AppMsgWorker {
     /**
      * apply business treatment to the message
      * @param message to be applied
+     * @return answer msg
      */
-    public void apply(Map<String, Object> message);
+    public Map<String, Object> apply(Map<String, Object> message);
 }

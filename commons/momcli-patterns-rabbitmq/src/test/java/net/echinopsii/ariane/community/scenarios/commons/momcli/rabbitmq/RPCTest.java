@@ -19,7 +19,6 @@
 
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
-import junit.framework.Assert;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
@@ -34,7 +33,7 @@ import java.util.Properties;
 
 import static junit.framework.TestCase.assertTrue;
 
-public class FireAndForgetTest {
+public class RPCTest {
 
     private static MomClient client = null;
 
@@ -60,18 +59,38 @@ public class FireAndForgetTest {
             client.close();
     }
 
-    final static String sendedMsgBody = "Hello Rabbit!";
+    final static String sendedRequestBody = "Hello Rabbit!";
+    final static String sendedReplyBody   = "Hello Client!";
 
-    class TestMsgWorker implements AppMsgWorker {
-
+    class TestRequestWorker implements AppMsgWorker {
         boolean OK = false;
 
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
             String recvMsgBody = new String((byte [])message.get(MomMsgTranslator.MSG_BODY));
-            if (recvMsgBody.equals(sendedMsgBody))
+            if (recvMsgBody.equals(sendedRequestBody))
                 OK = true;
-            return null;
+
+            Map<String, Object> reply = new HashMap<String, Object>();
+            reply.put(MomMsgTranslator.MSG_BODY, sendedReplyBody);
+
+            return reply;
+        }
+
+        public boolean isOK() {
+            return OK;
+        }
+    }
+
+    class TestReplyWorker implements AppMsgWorker {
+        boolean OK = false;
+
+        @Override
+        public Map<String, Object> apply(Map<String, Object> message) {
+            String recvMsgBody = new String((byte [])message.get(MomMsgTranslator.MSG_BODY));
+            if (recvMsgBody.equals(sendedReplyBody))
+                OK = true;
+            return message;
         }
 
         public boolean isOK() {
@@ -80,19 +99,19 @@ public class FireAndForgetTest {
     }
 
     @Test
-    public void testFireAndForget() throws InterruptedException {
+    public void testRPC() throws InterruptedException {
         if (client!=null) {
-            TestMsgWorker test = new TestMsgWorker();
+            TestRequestWorker requestWorker = new TestRequestWorker();
+            TestReplyWorker   replyWorker   = new TestReplyWorker();
 
-            client.getServiceFactory().requestService("FAF_QUEUE", test);
+            client.getServiceFactory().requestService("RPC_QUEUE", requestWorker);
 
-            Map<String, Object> message = new HashMap<String, Object>();
-            message.put(MomMsgTranslator.MSG_BODY, sendedMsgBody);
-            client.getRequestFactory().fireAndForget(message, "FAF_QUEUE");
+            Map<String, Object> request = new HashMap<String, Object>();
+            request.put(MomMsgTranslator.MSG_BODY, sendedRequestBody);
+            client.getRequestFactory().RPC(request, "RPC_QUEUE", replyWorker);
 
-            Thread.sleep(1000);
-
-            assertTrue(test.isOK());
+            assertTrue(requestWorker.isOK());
+            assertTrue(replyWorker.isOK());
         }
     }
 

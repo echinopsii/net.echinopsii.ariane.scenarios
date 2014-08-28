@@ -25,6 +25,7 @@ import com.rabbitmq.client.Envelope;
 import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -46,41 +47,49 @@ public class MsgTranslator implements MomMsgTranslator<Message>{
     @Override
     public Message encode(Map<String, Object> message) {
         AMQP.BasicProperties.Builder propsBuilder = new AMQP.BasicProperties.Builder();
+        Map<String,Object> headerFields = new HashMap<String, Object>();
         BasicProperties properties = null;
         byte[] body = null;
 
-        if (message.get(MSG_APPLICATION_ID)!=null)
-            propsBuilder.appId((String)message.get(MSG_APPLICATION_ID));
-        if (message.get(MSG_RBQ_CONTENT_ENCODING)!=null)
-            propsBuilder.contentEncoding((String)message.get(MSG_RBQ_CONTENT_ENCODING));
-        if (message.get(MSG_RBQ_CONTENT_TYPE)!=null)
-            propsBuilder.contentType((String)message.get(MSG_RBQ_CONTENT_TYPE));
-        if (message.get(MSG_CORRELATION_ID)!=null)
-            propsBuilder.correlationId((String)message.get(MSG_CORRELATION_ID));
-        if (message.get(MSG_DELIVERY_MODE)!=null)
-            propsBuilder.deliveryMode((Integer)message.get(MSG_DELIVERY_MODE));
-        if (message.get(MSG_EXPIRATION)!=null)
-            propsBuilder.expiration((String)message.get(MSG_EXPIRATION));
-        if (message.get(MSG_RBQ_HEADER)!=null)
-            propsBuilder.headers((Map<String, Object>)message.get(MSG_RBQ_HEADER));
-        if (message.get(MSG_PRIORITY)!=null)
-            propsBuilder.priority((Integer)message.get(MSG_PRIORITY));
-        if (message.get(MSG_REPLY_TO)!=null)
-            propsBuilder.replyTo((String)message.get(MSG_REPLY_TO));
-        if (message.get(MSG_TIMESTAMP)!=null)
-            propsBuilder.timestamp((Date)message.get(MSG_TIMESTAMP));
-        if (message.get(MSG_TYPE)!=null)
-            propsBuilder.type((String)message.get(MSG_TYPE));
-        if (message.get(MSG_RBQ_USER_ID)!=null)
-            propsBuilder.userId((String)message.get(MSG_RBQ_USER_ID));
+        for (String key : message.keySet()) {
+            if (key.equals(MSG_APPLICATION_ID))
+                propsBuilder.appId((String) message.get(MSG_APPLICATION_ID));
+            else if (key.equals(MSG_RBQ_CONTENT_ENCODING))
+                propsBuilder.contentEncoding((String) message.get(MSG_RBQ_CONTENT_ENCODING));
+            else if (key.equals(MSG_RBQ_CONTENT_TYPE))
+                propsBuilder.contentType((String) message.get(MSG_RBQ_CONTENT_TYPE));
+            else if (key.equals(MSG_CORRELATION_ID))
+                propsBuilder.correlationId((String) message.get(MSG_CORRELATION_ID));
+            else if (key.equals(MSG_DELIVERY_MODE))
+                propsBuilder.deliveryMode((Integer) message.get(MSG_DELIVERY_MODE));
+            else if (key.equals(MSG_EXPIRATION))
+                propsBuilder.expiration((String)message.get(MSG_EXPIRATION));
+            else if (key.equals(MSG_RBQ_HEADER))
+                headerFields.putAll((Map<String, Object>)message.get(MSG_RBQ_HEADER));
+            else if (key.equals(MSG_PRIORITY))
+                propsBuilder.priority((Integer)message.get(MSG_PRIORITY));
+            else if (key.equals(MSG_REPLY_TO))
+                propsBuilder.replyTo((String)message.get(MSG_REPLY_TO));
+            else if (key.equals(MSG_TIMESTAMP))
+                propsBuilder.timestamp((Date)message.get(MSG_TIMESTAMP));
+            else if (key.equals(MSG_TYPE))
+                propsBuilder.type((String)message.get(MSG_TYPE));
+            else if (key.equals(MSG_RBQ_USER_ID))
+                propsBuilder.userId((String)message.get(MSG_RBQ_USER_ID));
+            else if (key.equals(MSG_BODY)) {
+                Object bodyObject = message.get(MSG_BODY);
+                if (bodyObject instanceof String)
+                    body = ((String) message.get(MSG_BODY)).getBytes();
+                else if (bodyObject instanceof byte[])
+                    body = (byte[]) bodyObject;
+            } else {
+                headerFields.put(key, message.get(key));
+            }
+        }
 
+        if (headerFields.size()>0)
+            propsBuilder.headers(headerFields);
         properties = propsBuilder.build();
-
-        Object bodyObject = message.get(MSG_BODY);
-        if (bodyObject instanceof String)
-            body = ((String)message.get(MSG_BODY)).getBytes();
-        else if (bodyObject instanceof byte[])
-            body = (byte[])bodyObject;
 
         return new Message().setProperties(properties).setBody(body);
     }
@@ -99,7 +108,6 @@ public class MsgTranslator implements MomMsgTranslator<Message>{
         }
 
         if (properties!=null) {
-            decodedMessage.put(MSG_RBQ_HEADER, properties.getHeaders());
             decodedMessage.put(MSG_APPLICATION_ID, properties.getAppId());
             decodedMessage.put(MSG_RBQ_CONTENT_ENCODING, properties.getContentEncoding());
             decodedMessage.put(MSG_RBQ_CONTENT_TYPE, properties.getContentType());
@@ -112,6 +120,11 @@ public class MsgTranslator implements MomMsgTranslator<Message>{
             decodedMessage.put(MSG_TIMESTAMP, properties.getTimestamp());
             decodedMessage.put(MSG_TYPE, properties.getType());
             decodedMessage.put(MSG_RBQ_USER_ID, properties.getUserId());
+            Map<String, Object> headerFields = properties.getHeaders();
+            if (headerFields!=null) {
+                for (String key : headerFields.keySet())
+                    decodedMessage.put(key, headerFields.get(key));
+            }
         }
 
         decodedMessage.put(MSG_BODY, body);

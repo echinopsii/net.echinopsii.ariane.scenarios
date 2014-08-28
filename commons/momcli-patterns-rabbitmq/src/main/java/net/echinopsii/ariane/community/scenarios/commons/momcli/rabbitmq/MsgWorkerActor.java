@@ -22,10 +22,10 @@ package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.japi.Creator;
-import com.rabbitmq.client.BasicProperties;
-import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.*;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
+import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
+import net.echinopsii.ariane.community.scenarios.momcli.MomRequestFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,21 +33,22 @@ import java.util.Map;
 public class MsgWorkerActor extends UntypedActor {
 
     private AppMsgWorker msgWorker = null;
+    private Client       client    = null;
 
 
-
-    public static Props props(final AppMsgWorker worker) {
+    public static Props props(final Client mclient, final AppMsgWorker worker) {
         return Props.create(new Creator<MsgWorkerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MsgWorkerActor create() throws Exception {
-                return new MsgWorkerActor(worker);
+                return new MsgWorkerActor(mclient, worker);
             }
         });
     }
 
-    public MsgWorkerActor(AppMsgWorker worker) {
+    public MsgWorkerActor(Client mclient,  AppMsgWorker worker) {
+        client = mclient;
         msgWorker = worker;
     }
 
@@ -62,7 +63,19 @@ public class MsgWorkerActor extends UntypedActor {
                                                    new Message().setEnvelope(((QueueingConsumer.Delivery) message).getEnvelope()).
                                                                  setProperties(((QueueingConsumer.Delivery) message).getProperties()).
                                                                  setBody(((QueueingConsumer.Delivery) message).getBody()));
-            msgWorker.apply(finalMessage);
+
+            Map<String, Object> reply = msgWorker.apply(finalMessage);
+
+            if (properties.getReplyTo()!=null && properties.getCorrelationId()!=null && reply!=null) {
+
+                reply.put(MsgTranslator.MSG_CORRELATION_ID, properties.getCorrelationId());
+                Message replyMessage = new MsgTranslator().encode(reply);
+
+                Connection cnx = client.getConnection();
+                Channel channel = cnx.createChannel();
+                channel.basicPublish("", properties.getReplyTo(), replyMessage.getProperties(), replyMessage.getBody());
+                channel.basicAck(((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag(), false);
+            }
         } else
             unhandled(message);
     }

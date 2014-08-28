@@ -22,9 +22,6 @@ import java.util.Map;
 
 public interface MomRequestFactory<Q, C extends AppMsgWorker> {
 
-    public final String REQ_TYPE_FIRE_FORGET = "FAF";
-    public final String REQ_TYPE_RPC         = "RPC";
-
     /**
      * send request / no answer awaited
      * @param request the request message
@@ -40,5 +37,5 @@ public interface MomRequestFactory<Q, C extends AppMsgWorker> {
      * @param answerCB the callback object to treat the answer
      * @return the answer message
      */
-    public Map<String, Object> RPC(Map<String, Object> request, Q destination, Q answerSource, C answerCB);
+    public Map<String, Object> RPC(Map<String, Object> request, Q destination, C answerCB);
 }

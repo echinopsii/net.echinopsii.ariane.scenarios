@@ -59,14 +59,6 @@ public class Service implements MomService<ActorRef>{
 
     public void stop() {
         if (consumer!=null) consumer.stop();
-        if (actorRef!=null) {
-            actorRefFactory.stop(actorRef);
-            while (!actorRef.isTerminated())
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-        }
+        if (actorRef!=null) actorRefFactory.stop(actorRef);
     }
 }
