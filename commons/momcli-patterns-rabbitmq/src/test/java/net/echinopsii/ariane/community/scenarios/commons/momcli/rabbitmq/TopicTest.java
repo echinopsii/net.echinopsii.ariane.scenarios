@@ -61,7 +61,7 @@ public class TopicTest {
 
         @Override
         public Map<String, Object> apply() {
-            Map<String, Object> ret = new HashMap<String, Object>()
+            Map<String, Object> ret = new HashMap<String, Object>();
             return null;
         }
 
