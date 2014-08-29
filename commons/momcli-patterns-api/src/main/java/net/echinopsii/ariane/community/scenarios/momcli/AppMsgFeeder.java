@@ -1,5 +1,6 @@
 /**
- * MomRequestFactory - request a service according a provided exchange pattern
+ * [DEFINE YOUR PROJECT NAME/MODULE HERE]
+ * [DEFINE YOUR PROJECT DESCRIPTION HERE] 
  * Copyright (C) 8/24/14 echinopsii
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,22 +21,11 @@ package net.echinopsii.ariane.community.scenarios.momcli;
 
 import java.util.Map;
 
-public interface MomRequestFactory<Q, C extends AppMsgWorker> {
+public interface AppMsgFeeder {
 
-    /**
-     * send request / no answer awaited
-     * @param request the request message
-     * @param destination the target destination queue
-     * @return request message
-     */
-    public Map<String, Object> fireAndForget(Map<String, Object> request, Q destination);
+    public final static String MSG_FEED_NOW = "FEED_NOW";
+    public final static String PRP_SUBT_DST = "PRP_SUBT_DST";
 
-    /**
-     * send a request and get the answer
-     * @param request the request message
-     * @param destination the target destination queue
-     * @param answerCB the callback object to treat the answer
-     * @return the answer message
-     */
-    public Map<String, Object> RPC(Map<String, Object> request, Q destination, C answerCB);
+    public Map<String, Object> apply();
+    public int getInterval();
 }

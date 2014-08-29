@@ -20,45 +20,76 @@
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
+import akka.actor.Cancellable;
+import net.echinopsii.ariane.community.scenarios.momcli.AppMsgFeeder;
 import net.echinopsii.ariane.community.scenarios.momcli.MomConsumer;
 import net.echinopsii.ariane.community.scenarios.momcli.MomService;
+import scala.concurrent.duration.Duration;
+
+import java.util.concurrent.TimeUnit;
 
 public class Service implements MomService<ActorRef>{
 
-    private MomConsumer     consumer;
-    private ActorRef        actorRef;
-    private ActorRefFactory actorRefFactory;
+    private MomConsumer consumer;
+    private ActorRef    msgWorker;
+    private ActorRef    msgFeeder;
+    private Cancellable cancellable;
+    private Client      client;
 
+
+    @Override
     public MomConsumer getConsumer() {
         return consumer;
     }
 
+    @Override
     public Service setConsumer(MomConsumer consumer) {
         this.consumer = consumer;
         return this;
     }
 
-    public ActorRef getActorRef() {
-        return actorRef;
+    @Override
+    public ActorRef getMsgWorker() {
+        return msgWorker;
     }
 
-    public Service setActorRef(ActorRef actorRef) {
-        this.actorRef = actorRef;
+    @Override
+    public Service setMsgWorker(ActorRef msgWorker) {
+        this.msgWorker = msgWorker;
         return this;
     }
 
-    public ActorRefFactory getActorRefFactory() {
-        return actorRefFactory;
+    @Override
+    public ActorRef getMsgFeeder() {
+        return msgFeeder;
     }
 
-    public Service setActorRefFactory(ActorRefFactory actorRefFactory) {
-        this.actorRefFactory = actorRefFactory;
+    @Override
+    public Service setMsgFeeder(ActorRef msgFeeder, int schedulerInterval) {
+        this.msgFeeder = msgFeeder;
+        cancellable = client.getActorSystem().scheduler().schedule(Duration.Zero(),
+                                                                   Duration.create(schedulerInterval, TimeUnit.MILLISECONDS),
+                                                                   msgFeeder,
+                                                                   AppMsgFeeder.MSG_FEED_NOW,
+                                                                   client.getActorSystem().dispatcher(),
+                                                                   null);
         return this;
     }
 
+    @Override
     public void stop() {
-        if (consumer!=null) consumer.stop();
-        if (actorRef!=null) actorRefFactory.stop(actorRef);
+        if (consumer != null) consumer.stop();
+        if (cancellable != null) cancellable.cancel();
+        if (msgFeeder != null) client.getActorSystem().stop(msgFeeder);
+        if (msgWorker !=null) client.getActorSystem().stop(msgWorker);
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public Service setClient(Client client) {
+        this.client = client;
+        return this;
     }
 }

@@ -19,18 +19,17 @@
 
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
-import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.QueueingConsumer;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
-import net.echinopsii.ariane.community.scenarios.momcli.MomRequestFactory;
+import net.echinopsii.ariane.community.scenarios.momcli.MomRequestExecutor;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
-public class RequestFactory extends Client implements MomRequestFactory<String, AppMsgWorker> {
+public class RequestExecutor extends Client implements MomRequestExecutor<String, AppMsgWorker> {
 
     private static final String EXCHANGE_TYPE_DIRECT = "direct";
 
@@ -39,7 +38,7 @@ public class RequestFactory extends Client implements MomRequestFactory<String, 
 
     private Client momClient;
 
-    public RequestFactory(Client client) {
+    public RequestExecutor(Client client) {
         momClient = client;
     }
 

@@ -25,7 +25,7 @@ import akka.actor.ActorSystem;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
-import net.echinopsii.ariane.community.scenarios.momcli.MomRequestFactory;
+import net.echinopsii.ariane.community.scenarios.momcli.MomRequestExecutor;
 import net.echinopsii.ariane.community.scenarios.momcli.MomService;
 import net.echinopsii.ariane.community.scenarios.momcli.MomServiceFactory;
 
@@ -35,10 +35,10 @@ import java.util.Properties;
 public class Client implements MomClient {
 
     private MomServiceFactory serviceFactory ;
-    private MomRequestFactory requestFactory ;
+    private MomRequestExecutor requestFactory ;
 
-    private ActorRefFactory actorFactory = ActorSystem.create("MySystem");
-    private Connection      connection   = null;
+    private ActorSystem system     = ActorSystem.create("MySystem");
+    private Connection  connection = null;
 
     @Override
     public void init(Properties properties) throws IOException {
@@ -48,7 +48,7 @@ public class Client implements MomClient {
         connection = factory.newConnection();
 
         serviceFactory = new ServiceFactory(this);
-        requestFactory = new RequestFactory(this);
+        requestFactory = new RequestExecutor(this);
     }
 
     @Override
@@ -71,7 +71,7 @@ public class Client implements MomClient {
     }
 
     @Override
-    public MomRequestFactory getRequestFactory() {
+    public MomRequestExecutor getRequestFactory() {
         return requestFactory;
     }
 
@@ -80,7 +80,7 @@ public class Client implements MomClient {
         return serviceFactory;
     }
 
-    public ActorRefFactory getActorFactory() {
-        return actorFactory;
+    public ActorSystem getActorSystem() {
+        return system;
     }
 }

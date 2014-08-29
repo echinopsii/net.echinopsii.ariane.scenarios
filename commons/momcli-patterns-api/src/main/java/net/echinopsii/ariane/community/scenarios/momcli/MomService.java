@@ -23,8 +23,12 @@ public interface MomService<A> {
 
     public MomConsumer getConsumer();
     public MomService setConsumer(MomConsumer consumer);
-    public A getActorRef();
-    public MomService setActorRef(A actorRef);
+
+    public A getMsgWorker();
+    public MomService setMsgWorker(A actorRef);
+
+    public A getMsgFeeder();
+    public MomService setMsgFeeder(A actorRef, int schedulerInterval);
 
     public void stop();
 }

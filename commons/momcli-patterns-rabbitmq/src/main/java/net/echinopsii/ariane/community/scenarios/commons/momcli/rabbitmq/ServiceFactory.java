@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, AppFeeder, String, String> {
+public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, AppMsgFeeder, String, String> {
 
     private Client        momClient ;
     private List<Service> serviceList  = new ArrayList<Service>();
@@ -55,7 +55,7 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
         MomConsumer consumer     = null;
 
         if (connection != null && connection.isOpen()) {
-            requestActor = momClient.getActorFactory().actorOf(MsgWorkerActor.props(momClient, requestCB), source + "_msgWorker");
+            requestActor = momClient.getActorSystem().actorOf(MsgRequestActor.props(momClient, requestCB), source + "_msgWorker");
             final ActorRef runnableReqActor   = requestActor;
 
             consumer = new MomConsumer() {
@@ -114,7 +114,7 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
 
             consumer.start();
 
-            ret = new Service().setActorRef(requestActor).setConsumer(consumer).setActorRefFactory(momClient.getActorFactory());
+            ret = new Service().setMsgWorker(requestActor).setConsumer(consumer).setClient(momClient);
             serviceList.add(ret);
         }
 
@@ -122,13 +122,95 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
     }
 
     @Override
-    public Service feederService(String destination, AppFeeder feederCB) {
-        return null;
+    public Service feederService(String baseDestination, int interval, AppMsgFeeder feederCB) {
+        Service  ret = null;
+        ActorRef feederActor = null;
+        Connection  connection   = momClient.getConnection();
+        if (connection != null && connection.isOpen()) {
+            ActorRef feeder = momClient.getActorSystem().actorOf(MsgFeederActor.props(momClient,baseDestination,feederCB));
+            ret = new Service().setMsgFeeder(feeder, interval);
+            serviceList.add(ret);
+        }
+        return ret;
     }
 
     @Override
-    public Service subscriberService(String source, AppMsgWorker feedCB) {
-        return null;
+    public Service subscriberService(final String baseSource, String selector, AppMsgWorker feedCB) {
+        Service     ret       = null;
+        ActorRef    subsActor = null;
+        MomConsumer consumer  = null;
+        final Connection connection = momClient.getConnection();
+
+        if (selector == null || selector.equals(""))
+            selector = "#";
+
+        if (connection != null && connection.isOpen()) {
+            subsActor = momClient.getActorSystem().actorOf(MsgSubsActor.props(feedCB), baseSource + "." + selector + "_msgWorker");
+            final ActorRef runnableReqActor = subsActor;
+            final String   select           = selector;
+
+            consumer = new MomConsumer() {
+                private boolean isRunning = false;
+
+                @Override
+                public void run() {
+                    Channel channel = null;
+                    try {
+                        channel = connection.createChannel();
+                        channel.exchangeDeclare(baseSource, "topic");
+                        String queueName = channel.queueDeclare().getQueue();
+
+                        channel.queueBind(queueName, baseSource, select);
+
+                        QueueingConsumer consumer = new QueueingConsumer(channel);
+                        channel.basicConsume(queueName, true, consumer);
+
+                        isRunning = true;
+
+                        while (isRunning) {
+                            try {
+                                QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+                                runnableReqActor.tell(delivery, null);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                        }
+
+                        channel.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            channel.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                @Override
+                public boolean isRunning() {
+                    return isRunning;
+                }
+
+                @Override
+                public void start() {
+                    new Thread(this).start();
+                }
+
+                @Override
+                public void stop() {
+                    isRunning = false;
+                }
+            };
+
+            consumer.start();
+            ret = new Service().setMsgWorker(subsActor).setConsumer(consumer).setClient(momClient);
+            serviceList.add(ret);
+        }
+        return ret;
     }
 
     @Override

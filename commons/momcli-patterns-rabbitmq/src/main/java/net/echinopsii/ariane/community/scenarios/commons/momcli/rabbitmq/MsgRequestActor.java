@@ -24,30 +24,28 @@ import akka.actor.UntypedActor;
 import akka.japi.Creator;
 import com.rabbitmq.client.*;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
-import net.echinopsii.ariane.community.scenarios.momcli.MomRequestFactory;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class MsgWorkerActor extends UntypedActor {
+public class MsgRequestActor extends UntypedActor {
 
-    private AppMsgWorker msgWorker = null;
-    private Client       client    = null;
+    private MsgTranslator translator = new MsgTranslator();
+    private AppMsgWorker msgWorker   = null;
+    private Client       client      = null;
 
 
     public static Props props(final Client mclient, final AppMsgWorker worker) {
-        return Props.create(new Creator<MsgWorkerActor>() {
+        return Props.create(new Creator<MsgRequestActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public MsgWorkerActor create() throws Exception {
-                return new MsgWorkerActor(mclient, worker);
+            public MsgRequestActor create() throws Exception {
+                return new MsgRequestActor(mclient, worker);
             }
         });
     }
 
-    public MsgWorkerActor(Client mclient,  AppMsgWorker worker) {
+    public MsgRequestActor(Client mclient, AppMsgWorker worker) {
         client = mclient;
         msgWorker = worker;
     }
@@ -59,7 +57,7 @@ public class MsgWorkerActor extends UntypedActor {
             BasicProperties properties = ((QueueingConsumer.Delivery) message).getProperties();
             byte[] body = ((QueueingConsumer.Delivery)message).getBody();
 
-            Map<String, Object> finalMessage = new MsgTranslator().decode(
+            Map<String, Object> finalMessage = translator.decode(
                                                    new Message().setEnvelope(((QueueingConsumer.Delivery) message).getEnvelope()).
                                                                  setProperties(((QueueingConsumer.Delivery) message).getProperties()).
                                                                  setBody(((QueueingConsumer.Delivery) message).getBody()));
@@ -69,7 +67,7 @@ public class MsgWorkerActor extends UntypedActor {
             if (properties.getReplyTo()!=null && properties.getCorrelationId()!=null && reply!=null) {
 
                 reply.put(MsgTranslator.MSG_CORRELATION_ID, properties.getCorrelationId());
-                Message replyMessage = new MsgTranslator().encode(reply);
+                Message replyMessage = translator.encode(reply);
 
                 Connection cnx = client.getConnection();
                 Channel channel = cnx.createChannel();
