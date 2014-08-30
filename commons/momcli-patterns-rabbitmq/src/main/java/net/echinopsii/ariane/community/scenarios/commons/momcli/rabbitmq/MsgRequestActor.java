@@ -69,9 +69,7 @@ public class MsgRequestActor extends UntypedActor {
                 Message replyMessage = translator.encode(reply);
                 channel.basicPublish("", properties.getReplyTo(), (AMQP.BasicProperties) replyMessage.getProperties(), replyMessage.getBody());
             }
-            long deliveryTag = ((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag();
-            System.out.println("ack msg " + deliveryTag);
-            channel.basicAck(deliveryTag, false);
+            channel.basicAck(((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag(), false);
         } else
             unhandled(message);
     }
