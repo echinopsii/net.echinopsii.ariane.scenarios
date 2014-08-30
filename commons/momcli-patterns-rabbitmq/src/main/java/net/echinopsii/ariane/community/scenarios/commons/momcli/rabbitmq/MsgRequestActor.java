@@ -32,21 +32,23 @@ public class MsgRequestActor extends UntypedActor {
     private MsgTranslator translator = new MsgTranslator();
     private AppMsgWorker msgWorker   = null;
     private Client       client      = null;
+    private Channel      channel     = null;
 
 
-    public static Props props(final Client mclient, final AppMsgWorker worker) {
+    public static Props props(final Client mclient, final Channel channel, final AppMsgWorker worker) {
         return Props.create(new Creator<MsgRequestActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MsgRequestActor create() throws Exception {
-                return new MsgRequestActor(mclient, worker);
+                return new MsgRequestActor(mclient, channel, worker);
             }
         });
     }
 
-    public MsgRequestActor(Client mclient, AppMsgWorker worker) {
+    public MsgRequestActor(Client mclient, Channel chan, AppMsgWorker worker) {
         client = mclient;
+        channel = chan;
         msgWorker = worker;
     }
 
@@ -57,23 +59,19 @@ public class MsgRequestActor extends UntypedActor {
             BasicProperties properties = ((QueueingConsumer.Delivery) message).getProperties();
             byte[] body = ((QueueingConsumer.Delivery)message).getBody();
 
-            Map<String, Object> finalMessage = translator.decode(
-                                                   new Message().setEnvelope(((QueueingConsumer.Delivery) message).getEnvelope()).
-                                                                 setProperties(((QueueingConsumer.Delivery) message).getProperties()).
-                                                                 setBody(((QueueingConsumer.Delivery) message).getBody()));
+            Map<String, Object> finalMessage = translator.decode(new Message().setEnvelope(envelope).
+                                                                 setProperties(properties).
+                                                                 setBody(body));
 
             Map<String, Object> reply = msgWorker.apply(finalMessage);
-
             if (properties.getReplyTo()!=null && properties.getCorrelationId()!=null && reply!=null) {
-
                 reply.put(MsgTranslator.MSG_CORRELATION_ID, properties.getCorrelationId());
                 Message replyMessage = translator.encode(reply);
-
-                Connection cnx = client.getConnection();
-                Channel channel = cnx.createChannel();
-                channel.basicPublish("", properties.getReplyTo(), replyMessage.getProperties(), replyMessage.getBody());
-                channel.basicAck(((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag(), false);
+                channel.basicPublish("", properties.getReplyTo(), (AMQP.BasicProperties) replyMessage.getProperties(), replyMessage.getBody());
             }
+            long deliveryTag = ((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag();
+            System.out.println("ack msg " + deliveryTag);
+            channel.basicAck(deliveryTag, false);
         } else
             unhandled(message);
     }

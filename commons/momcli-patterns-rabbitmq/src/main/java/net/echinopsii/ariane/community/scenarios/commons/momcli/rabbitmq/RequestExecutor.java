@@ -54,7 +54,7 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
             channel.queueBind(destination, FAF_EXCHANGE, destination);
 
             Message message = new MsgTranslator().encode(request);
-            channel.basicPublish(FAF_EXCHANGE, destination, message.getProperties(), message.getBody());
+            channel.basicPublish(FAF_EXCHANGE, destination, (com.rabbitmq.client.AMQP.BasicProperties) message.getProperties(), message.getBody());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -90,7 +90,7 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
             request.put(MsgTranslator.MSG_REPLY_TO, replyQueueName);
 
             Message message = new MsgTranslator().encode(request);
-            channel.basicPublish(RPC_EXCHANGE, destination, message.getProperties(), message.getBody());
+            channel.basicPublish(RPC_EXCHANGE, destination, (com.rabbitmq.client.AMQP.BasicProperties) message.getProperties(), message.getBody());
 
             while (true) {
                 QueueingConsumer.Delivery delivery = null;

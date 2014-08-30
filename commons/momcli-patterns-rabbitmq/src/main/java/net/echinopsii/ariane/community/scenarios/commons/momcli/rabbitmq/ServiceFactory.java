@@ -55,22 +55,28 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
         MomConsumer consumer     = null;
 
         if (connection != null && connection.isOpen()) {
-            requestActor = momClient.getActorSystem().actorOf(MsgRequestActor.props(momClient, requestCB), source + "_msgWorker");
+            Channel channel = null;
+            try {
+                channel = connection.createChannel();
+                channel.basicQos(1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            requestActor = momClient.getActorSystem().actorOf(MsgRequestActor.props(momClient, channel, requestCB), source + "_msgWorker");
             final ActorRef runnableReqActor   = requestActor;
+            final Channel  runnableChannel    = channel;
 
             consumer = new MomConsumer() {
                 private boolean isRunning = false;
 
                 @Override
                 public void run() {
-                    Channel channel = null;
                     try {
-                        channel = connection.createChannel();
-                        channel.queueDeclare(source, false, false, false, null);
+                        runnableChannel.queueDeclare(source, false, false, false, null);
 
-                        QueueingConsumer consumer = new QueueingConsumer(channel);
-                        channel.basicConsume(source, true, consumer);
-
+                        QueueingConsumer consumer = new QueueingConsumer(runnableChannel);
+                        runnableChannel.basicConsume(source, false, consumer);
                         isRunning = true;
 
                         while (isRunning) {
@@ -83,13 +89,11 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
 
                         }
 
-                        channel.close();
-
                     } catch (IOException e) {
                         e.printStackTrace();
                     } finally {
                         try {
-                            channel.close();
+                            runnableChannel.close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

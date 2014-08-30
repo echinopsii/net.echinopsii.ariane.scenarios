@@ -97,7 +97,7 @@ public class MsgTranslator implements MomMsgTranslator<Message>{
     @Override
     public Map<String, Object> decode(Message message) {
         Envelope envelope = message.getEnvelope();
-        BasicProperties properties = message.getProperties();
+        BasicProperties properties = (BasicProperties) message.getProperties();
         byte[] body = message.getBody();
 
         LinkedHashMap<String, Object> decodedMessage = new LinkedHashMap<String, Object>();

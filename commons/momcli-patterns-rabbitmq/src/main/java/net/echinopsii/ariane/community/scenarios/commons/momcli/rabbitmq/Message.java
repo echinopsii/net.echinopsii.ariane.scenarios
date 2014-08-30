@@ -19,7 +19,7 @@
 
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Envelope;
 
 public class Message {
