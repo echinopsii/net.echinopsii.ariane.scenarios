@@ -20,7 +20,7 @@ package net.echinopsii.ariane.community.scenarios.momcli;
 
 import java.util.List;
 
-public interface MomServiceFactory<SRV, C extends AppMsgWorker, F extends AppMsgFeeder, D, S> {
+public interface MomServiceFactory<SRV extends MomService, C extends AppMsgWorker, F extends AppMsgFeeder, S> {
     /**
      * request worker from a source
      * @param source the source where request are coming from
@@ -35,7 +35,7 @@ public interface MomServiceFactory<SRV, C extends AppMsgWorker, F extends AppMsg
      * @param feederCB the application feeder building the message to feed
      * @return service ref
      */
-    public SRV feederService(D baseDestination, int interval, F feederCB);
+    public SRV feederService(S baseDestination, S selector, int interval, F feederCB);
 
     /**
      * receive message from a feed source

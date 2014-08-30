@@ -24,7 +24,6 @@ import java.util.Map;
 public interface AppMsgFeeder {
 
     public final static String MSG_FEED_NOW = "FEED_NOW";
-    public final static String PRP_SUBT_DST = "PRP_SUBT_DST";
 
     public Map<String, Object> apply();
     public int getInterval();

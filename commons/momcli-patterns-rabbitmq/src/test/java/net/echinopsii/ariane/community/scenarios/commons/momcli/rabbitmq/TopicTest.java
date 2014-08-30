@@ -19,16 +19,16 @@
 
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
-import net.echinopsii.ariane.community.scenarios.momcli.AppMsgFeeder;
-import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
+import net.echinopsii.ariane.community.scenarios.momcli.*;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import static junit.framework.TestCase.assertTrue;
 
 public class TopicTest {
     private static MomClient client = null;
@@ -58,16 +58,30 @@ public class TopicTest {
     class TestFeeder implements AppMsgFeeder {
 
         private int interval = 100;
+        private String stockName;
+        private int msgNumber = 0;
+
+        public TestFeeder(String sname) {
+            stockName = sname;
+        }
 
         @Override
         public Map<String, Object> apply() {
             Map<String, Object> ret = new HashMap<String, Object>();
-            return null;
+            ret.put("NAME", stockName);
+            int price = (int)(Math.random() * 10 + Math.random() * 100 + Math.random() * 1000);
+            ret.put("PRICE", price );
+            msgNumber++;
+            return ret;
         }
 
         @Override
         public int getInterval() {
             return interval;
+        }
+
+        public int getMsgNumber() {
+            return msgNumber;
         }
     }
 
@@ -77,6 +91,7 @@ public class TopicTest {
 
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
+            msgNumber++;
             return message;
         }
 
@@ -85,5 +100,34 @@ public class TopicTest {
         }
     }
 
+    @Test
+    public void testPubSubTopic() throws InterruptedException {
+        if (client!=null) {
+            TestFeeder feederStockA = new TestFeeder("STOCKA");
+            TestFeeder feederStockB = new TestFeeder("STOCKB");
+            TestFeeder feederStockC = new TestFeeder("STOCKC");
 
+            TestSubscriber subsAll    = new TestSubscriber();
+            TestSubscriber subsStockA = new TestSubscriber();
+            TestSubscriber subsStockB = new TestSubscriber();
+            TestSubscriber subsStockC = new TestSubscriber();
+
+            MomService subsService  = client.getServiceFactory().subscriberService("PRICE", null, subsAll);
+            MomService subsServiceA = client.getServiceFactory().subscriberService("PRICE", "STOCKA", subsStockA);
+            MomService subsServiceB = client.getServiceFactory().subscriberService("PRICE", "STOCKB", subsStockB);
+            MomService subsServiceC = client.getServiceFactory().subscriberService("PRICE", "STOCKC", subsStockC);
+
+            MomService feedServiceA = client.getServiceFactory().feederService("PRICE", "STOCKA", feederStockA.getInterval(), feederStockA);
+            MomService feedServiceB = client.getServiceFactory().feederService("PRICE", "STOCKB", feederStockB.getInterval(), feederStockB);
+            MomService feedServiceC = client.getServiceFactory().feederService("PRICE", "STOCKC", feederStockC.getInterval(), feederStockC);
+
+            while(feederStockA.getMsgNumber()<=10)
+                Thread.sleep(feederStockA.getInterval());
+
+            assertTrue(subsAll.getMsgNumber()==(feederStockA.getMsgNumber()+feederStockB.getMsgNumber()+feederStockC.getMsgNumber()));
+            assertTrue(subsStockA.getMsgNumber()==feederStockA.getMsgNumber());
+            assertTrue(subsStockB.getMsgNumber()==feederStockB.getMsgNumber());
+            assertTrue(subsStockC.getMsgNumber()==feederStockC.getMsgNumber());
+        }
+    }
 }

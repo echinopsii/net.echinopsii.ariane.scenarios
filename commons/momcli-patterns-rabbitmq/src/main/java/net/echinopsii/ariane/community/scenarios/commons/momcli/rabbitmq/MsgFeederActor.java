@@ -32,32 +32,34 @@ import java.util.Map;
 public class MsgFeederActor extends UntypedActor {
 
     private MsgTranslator translator = new MsgTranslator();
-    private String        destination ;
-    private AppMsgFeeder  msgFeeder ;
+    private String        baseDest;
+    private String        selector;
+    private AppMsgFeeder  msgFeeder;
 
     private Client        client ;
     private Connection    connection;
     private Channel       channel ;
 
-    public static Props props(final Client mclient, final String destination, final AppMsgFeeder feeder) {
+    public static Props props(final Client mclient, final String baseDest, final String selector, final AppMsgFeeder feeder) {
         return Props.create(new Creator<MsgFeederActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MsgFeederActor create() throws Exception {
-                return new MsgFeederActor(mclient, destination, feeder);
+                return new MsgFeederActor(mclient, baseDest, selector, feeder);
             }
         });
     }
 
-    public MsgFeederActor(Client mclient, String dest, AppMsgFeeder feeder) {
-        client      = mclient;
-        destination = dest;
-        msgFeeder   = feeder;
-        connection  = client.getConnection();
+    public MsgFeederActor(Client mclient, String bDest, String selector_, AppMsgFeeder feeder) {
+        client     = mclient;
+        baseDest   = bDest;
+        selector   = selector_;
+        msgFeeder  = feeder;
+        connection = client.getConnection();
         try {
             channel = connection.createChannel();
-            channel.exchangeDeclare(destination, "topic");
+            channel.exchangeDeclare(this.baseDest, "topic");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -68,7 +70,7 @@ public class MsgFeederActor extends UntypedActor {
         if (message instanceof String && ((String)message).equals(AppMsgFeeder.MSG_FEED_NOW)) {
             Map<String, Object> newFeed = msgFeeder.apply();
             Message newFeedMsg = translator.encode(newFeed);
-            channel.basicPublish(destination, (String)newFeed.get(AppMsgFeeder.PRP_SUBT_DST), newFeedMsg.getProperties(), newFeedMsg.getBody());
+            channel.basicPublish(baseDest, selector, newFeedMsg.getProperties(), newFeedMsg.getBody());
         } else
             unhandled(message);
     }

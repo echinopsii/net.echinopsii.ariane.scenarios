@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, AppMsgFeeder, String, String> {
+public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, AppMsgFeeder, String> {
 
     private Client        momClient ;
     private List<Service> serviceList  = new ArrayList<Service>();
@@ -111,7 +111,6 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
                     isRunning = false;
                 }
             };
-
             consumer.start();
 
             ret = new Service().setMsgWorker(requestActor).setConsumer(consumer).setClient(momClient);
@@ -122,13 +121,13 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
     }
 
     @Override
-    public Service feederService(String baseDestination, int interval, AppMsgFeeder feederCB) {
+    public Service feederService(String baseDestination, String selector, int interval, AppMsgFeeder feederCB) {
         Service  ret = null;
         ActorRef feederActor = null;
         Connection  connection   = momClient.getConnection();
         if (connection != null && connection.isOpen()) {
-            ActorRef feeder = momClient.getActorSystem().actorOf(MsgFeederActor.props(momClient,baseDestination,feederCB));
-            ret = new Service().setMsgFeeder(feeder, interval);
+            ActorRef feeder = momClient.getActorSystem().actorOf(MsgFeederActor.props(momClient,baseDestination, selector, feederCB));
+            ret = new Service().setClient(momClient).setMsgFeeder(feeder, interval);
             serviceList.add(ret);
         }
         return ret;
@@ -145,7 +144,7 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
             selector = "#";
 
         if (connection != null && connection.isOpen()) {
-            subsActor = momClient.getActorSystem().actorOf(MsgSubsActor.props(feedCB), baseSource + "." + selector + "_msgWorker");
+            subsActor = momClient.getActorSystem().actorOf(MsgSubsActor.props(feedCB), baseSource + "." + ((selector.equals("#")) ? "all" : selector) + "_msgWorker");
             final ActorRef runnableReqActor = subsActor;
             final String   select           = selector;
 
