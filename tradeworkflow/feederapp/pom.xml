@@ -14,5 +14,31 @@
     <artifactId>net.echinopsii.ariane.community.scenarios.tradeworflow.feederapp</artifactId>
     <name>Ariane Community Scenarios TradeWorkflow : Feeder APP simulator</name>
     <packaging>jar</packaging>
-	
+
+    <dependencies>
+        <dependency>
+            <groupId>net.echinopsii.ariane.community.scenarios.commons</groupId>
+            <artifactId>net.echinopsii.ariane.community.scenarios.commons.momcli-patterns-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_2.10</artifactId>
+            <version>2.3.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.echinopsii.ariane.community.scenarios.commons</groupId>
+            <artifactId>net.echinopsii.ariane.community.scenarios.commons.momcli-patterns-rabbitmq</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
 </project>

@@ -4,15 +4,15 @@
     
     <parent>
          <groupId>net.echinopsii.ariane.community.scenarios</groupId>
-	 <artifactId>net.echinopsii.ariane.community.scenarios.tradeworkflow</artifactId>
+	     <artifactId>net.echinopsii.ariane.community.scenarios.tradeworkflow</artifactId>
          <version>0.1.0-SNAPSHOT</version>
          <relativePath>..</relativePath>
     </parent>
 
     <!-- General information -->
     <groupId>net.echinopsii.ariane.community.scenarios.tradeworkflow</groupId>
-    <artifactId>net.echinopsii.ariane.community.scenarios.tradeworflow.boapp</artifactId>
-    <name>Ariane Community Scenarios TradeWorkflow : BackOffice APP simulator</name>
+    <artifactId>net.echinopsii.ariane.community.scenarios.tradeworflow.riskapp</artifactId>
+    <name>Ariane Community Scenarios TradeWorkflow : Risk APP simulator</name>
     <packaging>jar</packaging>
 
     <dependencies>

@@ -43,8 +43,8 @@ public class Client implements MomClient {
     @Override
     public void init(Properties properties) throws IOException {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost((String)properties.get(MOM_HOST));
-        factory.setPort((Integer) properties.get(MOM_PORT));
+        factory.setHost((String) properties.get(MOM_HOST));
+        factory.setPort(new Integer((String)properties.get(MOM_PORT)));
         connection = factory.newConnection();
 
         serviceFactory = new ServiceFactory(this);

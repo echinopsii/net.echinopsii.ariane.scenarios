@@ -19,6 +19,7 @@
 	<module>boapp</module>
 	<module>feederapp</module>
 	<module>moapp</module>
+    <module>riskapp</module>
 	<module>tradingapp</module>
     </modules>
 </project>

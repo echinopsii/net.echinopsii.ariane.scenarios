@@ -22,6 +22,7 @@ package net.echinopsii.ariane.community.scenarios.momcli;
 import java.util.Properties;
 
 public interface MomClient {
+    public final static String MOM_CLI  = "mom_cli.impl";
     public final static String MOM_HOST = "mom_host.fqdn";
     public final static String MOM_PORT = "mom_host.port";
 
