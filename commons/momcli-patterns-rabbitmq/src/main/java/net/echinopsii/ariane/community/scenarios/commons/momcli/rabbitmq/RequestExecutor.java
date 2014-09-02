@@ -119,7 +119,8 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
                 }
         }
 
-        answerCB.apply(response);
+        if (answerCB!=null)
+            response = answerCB.apply(response);
 
         return response;
     }

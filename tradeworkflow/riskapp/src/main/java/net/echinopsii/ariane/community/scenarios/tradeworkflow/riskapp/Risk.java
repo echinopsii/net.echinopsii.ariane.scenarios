@@ -24,6 +24,8 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
 import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -33,11 +35,15 @@ public class Risk {
     class RiskWorker implements AppMsgWorker {
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
+            System.out.println("Risk service work on  : {" + message.get("NAME") + "," +
+                                message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 new Thread().sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
+            System.out.println("Risk service return OK");
             Map<String, Object> reply = new HashMap<String, Object>();
             reply.put(MomMsgTranslator.MSG_BODY, "OK");
             return reply;
@@ -73,12 +79,38 @@ public class Risk {
                 riskQueue = properties.getProperty(PROPS_FIELD_RSKQUEUE);
 
             client.getServiceFactory().requestService(riskQueue, new RiskWorker());
+            System.out.println("Risk service waiting requests on " + riskQueue + "...");
         }
     }
 
     public void stop() throws Exception {
+        System.out.println("Stop risk service ...");
         if (client!=null)
             client.close();
+    }
+
+    public static void main(String[] argv) throws IOException {
+        final Risk risk = new Risk();
+        Properties properties = new Properties();
+        InputStream conf = risk.getClass().getResourceAsStream("/risk.properties");
+        if (conf==null) {
+            System.out.println("Configuration file risk.properties not found in the classpath");
+            System.exit(1);
+        }
+        properties.load(conf);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run(){
+                try {
+                    risk.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        risk.start(properties);
     }
 
 }

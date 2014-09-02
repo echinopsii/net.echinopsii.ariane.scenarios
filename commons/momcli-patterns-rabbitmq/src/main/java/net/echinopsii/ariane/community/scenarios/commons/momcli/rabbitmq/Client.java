@@ -30,9 +30,25 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomService;
 import net.echinopsii.ariane.community.scenarios.momcli.MomServiceFactory;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Properties;
 
 public class Client implements MomClient {
+
+    public static final String PROP_PRODUCT_KEY = "mom_cli.rabbitmq.product";
+    public static final String RBQ_PRODUCT_KEY  = "product";
+
+    public static final String PROP_INFORMATION_KEY = "mom_cli.rabbitmq.information";
+    public static final String RBQ_INFORMATION_KEY  = "information";
+
+    public static final String PROP_PLATFORM_KEY = "mom_cli.rabbitmq.platform";
+    public static final String RBQ_PLATFORM_KEY  = "platform";
+
+    public static final String PROP_COPYRIGHT_KEY = "mom_cli.rabbitmq.copyright";
+    public static final String RBQ_COPYRIGHT_KEY  = "copyright";
+
+    public static final String PROP_VERSION_KEY = "mom_cli.rabbitmq.version";
+    public static final String RBQ_VERSION_KEY  = "version";
 
     private MomServiceFactory serviceFactory ;
     private MomRequestExecutor requestFactory ;
@@ -45,6 +61,21 @@ public class Client implements MomClient {
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost((String) properties.get(MOM_HOST));
         factory.setPort(new Integer((String)properties.get(MOM_PORT)));
+
+        Map<String, Object> factoryProperties = factory.getClientProperties();
+        if (properties.getProperty(PROP_PRODUCT_KEY)!=null)
+            factoryProperties.put(RBQ_PRODUCT_KEY,properties.getProperty(PROP_PRODUCT_KEY));
+        if (properties.getProperty(PROP_INFORMATION_KEY)!=null)
+            factoryProperties.put(RBQ_INFORMATION_KEY,properties.getProperty(PROP_INFORMATION_KEY));
+        if (properties.getProperty(PROP_PLATFORM_KEY)!=null)
+            factoryProperties.put(RBQ_PLATFORM_KEY,properties.getProperty(PROP_PLATFORM_KEY));
+        else
+            factoryProperties.put(RBQ_PLATFORM_KEY, "Java " + System.getProperty("java.version"));
+        if (properties.getProperty(PROP_COPYRIGHT_KEY)!=null)
+            factoryProperties.put(RBQ_COPYRIGHT_KEY, properties.getProperty(PROP_COPYRIGHT_KEY));
+        if (properties.getProperty(PROP_VERSION_KEY)!=null)
+            factoryProperties.put(RBQ_VERSION_KEY, properties.getProperty(PROP_VERSION_KEY));
+
         connection = factory.newConnection();
 
         serviceFactory = new ServiceFactory(this);

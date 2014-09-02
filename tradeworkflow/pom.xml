@@ -20,6 +20,6 @@
 	<module>feederapp</module>
 	<module>moapp</module>
     <module>riskapp</module>
-	<module>tradingapp</module>
+	<module>frontapp</module>
     </modules>
 </project>

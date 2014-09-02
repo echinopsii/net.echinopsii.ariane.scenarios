@@ -25,6 +25,7 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
 import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -34,11 +35,14 @@ public class BackOffice {
     class BackOfficeWorker implements AppMsgWorker {
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
+            System.out.println("Back office work on  : {" + message.get("NAME") + "," +
+                                message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 new Thread().sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            System.out.println("Back Office return DONE");
             Map<String, Object> reply = new HashMap<String, Object>();
             reply.put(MomMsgTranslator.MSG_BODY, "DONE");
             return reply;
@@ -74,10 +78,12 @@ public class BackOffice {
                 backOffiqueQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
 
             client.getServiceFactory().requestService(backOffiqueQueue, new BackOfficeWorker());
+            System.out.println("Back office waiting requests on " + backOffiqueQueue + "...");
         }
     }
 
     public void stop() throws Exception {
+        System.out.println("Stop Back Office ...");
         if (client!=null)
             client.close();
     }
@@ -85,7 +91,12 @@ public class BackOffice {
     public static void main(String[] argv) throws IOException {
         final BackOffice backoffice = new BackOffice();
         Properties properties = new Properties();
-        properties.load(backoffice.getClass().getResourceAsStream("backoffice.properties"));
+        InputStream conf = backoffice.getClass().getResourceAsStream("/backoffice.properties");
+        if (conf==null) {
+            System.out.println("Configuration file backoffice.properties not found in the classpath");
+            System.exit(1);
+        }
+        properties.load(conf);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override

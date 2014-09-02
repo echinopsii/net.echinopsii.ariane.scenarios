@@ -25,25 +25,57 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
 import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 public class MiddleOffice {
 
-    class MiddleOfficeWorker implements AppMsgWorker {
+    class RiskReplyWorker implements AppMsgWorker {
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
-            try {
-                new Thread().sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            Map<String, Object> reply = new HashMap<String, Object>();
-            reply.put(MomMsgTranslator.MSG_BODY, "OK");
+            return message;
+        }
+    }
+
+    class BOReplyWorker implements AppMsgWorker {
+        @Override
+        public Map<String, Object> apply(Map<String, Object> message) {
+            return message;
+        }
+    }
+
+    class MiddleOfficeWorker implements AppMsgWorker {
+        private MomClient client;
+        private String risk_queue;
+        private String bo_queue ;
+
+        public MiddleOfficeWorker(MomClient cli, String rq, String bq) {
+            client     = cli;
+            risk_queue = rq;
+            bo_queue   = bq;
+        }
+
+        @Override
+        public Map<String, Object> apply(final Map<String, Object> message) {
+            System.out.println("Forward front request to risk service : {" + message.get("NAME") + "," +
+                               message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            Map<String, Object> reply = client.getRequestFactory().RPC(message, risk_queue, new RiskReplyWorker());
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("Forward front request to back office : {" + message.get("NAME") + "," +
+                                        message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                    client.getRequestFactory().RPC(message, bo_queue, new BOReplyWorker());
+                }
+            }).start();
+
             return reply;
         }
     }
+
 
     private static final String PROPS_FIELD_MOQUEUE     = "middle_office.queue";
     private static final String PROPS_FIELD_MO_RSKQUEUE = "middle_office.risk_queue";
@@ -55,6 +87,16 @@ public class MiddleOffice {
 
     public void start(Properties properties) {
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
+            if (properties.getProperty(PROPS_FIELD_MO_BOQUEUE)==null) {
+                System.err.println("Error while initializing Middle Office service : back office queue isn't defined...");
+                return;
+            }
+
+            if (properties.getProperty(PROPS_FIELD_MO_RSKQUEUE)==null) {
+                System.err.println("Error while initializing Middle Office service : risk queue isn't defined...");
+                return;
+            }
+
             try {
                 client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
@@ -76,11 +118,15 @@ public class MiddleOffice {
             if (properties.getProperty(PROPS_FIELD_MOQUEUE)!=null)
                 moQueue = properties.getProperty(PROPS_FIELD_MOQUEUE);
 
-            client.getServiceFactory().requestService(moQueue, new MiddleOfficeWorker());
+            client.getServiceFactory().requestService(moQueue, new MiddleOfficeWorker(client,
+                                                      properties.getProperty(PROPS_FIELD_MO_RSKQUEUE),
+                                                      properties.getProperty(PROPS_FIELD_MO_BOQUEUE)));
+            System.out.println("Middle office waiting requests on " + moQueue + "...");
         }
     }
 
     public void stop() throws Exception {
+        System.out.println("Stop middle office ...");
         if (client!=null)
             client.close();
     }
@@ -88,7 +134,12 @@ public class MiddleOffice {
     public static void main(String[] argv) throws IOException {
         final MiddleOffice middleoffice = new MiddleOffice();
         Properties properties = new Properties();
-        properties.load(middleoffice.getClass().getResourceAsStream("middleoffice.properties"));
+        InputStream conf = middleoffice.getClass().getResourceAsStream("/middleoffice.properties");
+        if (conf==null) {
+            System.out.println("Configuration file middleoffice.properties not found in the classpath");
+            System.exit(1);
+        }
+        properties.load(conf);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -103,5 +154,4 @@ public class MiddleOffice {
 
         middleoffice.start(properties);
     }
-
 }

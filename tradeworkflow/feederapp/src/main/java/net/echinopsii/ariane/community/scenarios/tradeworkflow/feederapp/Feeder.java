@@ -24,13 +24,14 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 public class Feeder {
 
     class StockFeeder implements AppMsgFeeder {
         private String stockName;
-        private int    interval=100;
+        private int    interval=10000;
 
         public StockFeeder(String sname) {
             stockName = sname;
@@ -40,8 +41,9 @@ public class Feeder {
         public Map<String, Object> apply() {
             Map<String, Object> ret = new HashMap<String, Object>();
             ret.put("NAME", stockName);
-            int price = (int)(Math.random() * 10 + Math.random() * 100 + Math.random() * 1000);
+            long price = (long)(Math.random() * 10 + Math.random() * 100 + Math.random() * 1000);
             ret.put("PRICE", price);
+            System.out.println("name : " + stockName + "; price : " + price);
             return ret;
         }
 
@@ -83,6 +85,7 @@ public class Feeder {
             if (properties.getProperty(PROPS_FIELS_STOCKSLIST)!=null) {
                 String[] stockNamesList = ((String) properties.getProperty(PROPS_FIELS_STOCKSLIST)).split(",");
                 for (String stockName : stockNamesList) {
+                    System.out.println("Load stock " + stockName + " feeder on baseTopic " + baseTopic + "...");
                     StockFeeder stockFeeder = new StockFeeder(stockName);
                     client.getServiceFactory().feederService(baseTopic, stockName, stockFeeder.getInterval(), stockFeeder);
                 }
@@ -96,6 +99,7 @@ public class Feeder {
     }
 
     public void stop() throws Exception {
+        System.out.println("Stop feeder ...");
         if (client!=null)
             client.close();
     }
@@ -103,7 +107,12 @@ public class Feeder {
     public static void main(String[] argv) throws IOException {
         final Feeder feeder = new Feeder();
         Properties properties = new Properties();
-        properties.load(feeder.getClass().getResourceAsStream("feeder.properties"));
+        InputStream conf = feeder.getClass().getResourceAsStream("/feeder.properties");
+        if (conf==null) {
+            System.out.println("Configuration file feeder.properties not found in the classpath");
+            System.exit(1);
+        }
+        properties.load(conf);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
