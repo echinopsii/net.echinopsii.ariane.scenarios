@@ -33,6 +33,6 @@ public interface MomClient {
 
     public Object getConnection();
     public boolean isConnected();
-    public MomRequestExecutor getRequestExecutor();
+    public MomRequestExecutor createRequestExecutor();
     public MomServiceFactory getServiceFactory();
 }

@@ -19,10 +19,7 @@
 
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.frontapp;
 
-import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
-import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
+import net.echinopsii.ariane.community.scenarios.momcli.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,6 +89,7 @@ public class FrontOffice {
         private int                 mindiff=10;
         private int                 stockblksize=10;
         private List<AcquiredStock> acquiredStocks = new ArrayList<AcquiredStock>();
+        private MomRequestExecutor  moRexec = null;
 
         private long position;
 
@@ -102,6 +100,7 @@ public class FrontOffice {
             position  = 100000;
             mindiff   = mindiff_;
             stockblksize = stockblksize_;
+            moRexec = client.createRequestExecutor();
         }
 
         @Override
@@ -124,7 +123,7 @@ public class FrontOffice {
                 if (price * stockblksize < position) {
                     message.put("ORDER", "BUY");
                     message.put("QUANTITY", stockblksize);
-                    client.getRequestExecutor().RPC(message, moQueue, client.getClientID()+"Q", null);
+                    moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
                     System.out.println(stockblksize + " stocks {"+name+","+price+"} acquired...");
                     acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
                     position -= price*stockblksize;
@@ -134,7 +133,7 @@ public class FrontOffice {
                 if (allReaddyAcquired.getAcquiredPrice()<(price-mindiff)) {
                     message.put("ORDER","SELL");
                     message.put("QUANTITY", stockblksize);
-                    client.getRequestExecutor().RPC(message, moQueue, client.getClientID()+"Q", null);
+                    moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
                     System.out.println(stockblksize+" stocks {"+name+","+price+"} sold...");
                     acquiredStocks.remove(allReaddyAcquired);
                     position += price*stockblksize;

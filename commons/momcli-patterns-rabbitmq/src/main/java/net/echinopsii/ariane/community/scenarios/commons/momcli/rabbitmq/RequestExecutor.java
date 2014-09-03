@@ -27,6 +27,7 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 import net.echinopsii.ariane.community.scenarios.momcli.MomRequestExecutor;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,18 +39,16 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
     private static final String RPC_EXCHANGE = "RPC";
 
     private Client momClient;
+    private Channel channel;
 
-    public RequestExecutor(Client client) {
+    public RequestExecutor(Client client) throws IOException {
         momClient = client;
+        channel = client.getConnection().createChannel();
     }
 
     @Override
     public Map<String, Object> fireAndForget(Map<String, Object> request, String destination) {
-        final Connection connection = momClient.getConnection();
-        Channel channel = null;
         try {
-            channel = connection.createChannel();
-
             channel.exchangeDeclare(FAF_EXCHANGE, EXCHANGE_TYPE_DIRECT);
             channel.queueDeclare(destination, false, false, false, null);
             channel.queueBind(destination, FAF_EXCHANGE, destination);
@@ -57,19 +56,13 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
             Message message = new MsgTranslator().encode(request);
             request.put(MomMsgTranslator.MSG_APPLICATION_ID, momClient.getClientID());
             channel.basicPublish(FAF_EXCHANGE, destination, (com.rabbitmq.client.AMQP.BasicProperties) message.getProperties(), message.getBody());
-
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (channel!=null)
-                try {
-                    channel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
         }
         return request;
     }
+
+    private Map<String, QueueingConsumer> consumers = new HashMap<String, QueueingConsumer>();
 
     @Override
     public Map<String, Object> RPC(Map<String, Object> request, String destination, AppMsgWorker answerCB) {
@@ -78,12 +71,8 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
 
     @Override
     public Map<String, Object> RPC(Map<String, Object> request, String destination, String replySource, AppMsgWorker answerCB) {
-        final Connection connection = momClient.getConnection();
-        Channel channel = null;
         Map<String, Object> response = null;
         try {
-            channel = connection.createChannel();
-
             channel.exchangeDeclare(RPC_EXCHANGE, EXCHANGE_TYPE_DIRECT);
             channel.queueDeclare(destination, false, false, false, null);
             channel.queueBind(destination, RPC_EXCHANGE, destination);
@@ -95,8 +84,15 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
                 replyQueueName = replySource;
                 channel.queueDeclare(replyQueueName, false, true, false, null);
             }
-            QueueingConsumer consumer = new QueueingConsumer(channel);
-            channel.basicConsume(replyQueueName, true, consumer);
+            QueueingConsumer consumer = null;
+            if (consumers.get(replyQueueName)!=null) {
+                consumer = consumers.get(replyQueueName);
+            } else {
+                consumer = new QueueingConsumer(channel);
+                channel.basicConsume(replyQueueName, true, consumer);
+                consumers.put(replyQueueName, consumer);
+            }
+
 
             String corrId = UUID.randomUUID().toString();
             request.put(MsgTranslator.MSG_CORRELATION_ID, corrId);
@@ -120,22 +116,19 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
                     e.printStackTrace();
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
 
-        } finally {
-            if (channel!=null)
-                try {
-                    channel.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
         }
 
         if (answerCB!=null)
             response = answerCB.apply(response);
 
         return response;
+    }
+
+    public void stop() throws IOException {
+        channel.close();
+        consumers.clear();
     }
 }

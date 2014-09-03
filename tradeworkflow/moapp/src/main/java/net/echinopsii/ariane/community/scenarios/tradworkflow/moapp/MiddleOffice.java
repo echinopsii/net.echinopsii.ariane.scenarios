@@ -19,10 +19,7 @@
 
 package net.echinopsii.ariane.community.scenarios.tradworkflow.moapp;
 
-import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
-import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
-import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
+import net.echinopsii.ariane.community.scenarios.momcli.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,25 +46,31 @@ public class MiddleOffice {
         private MomClient client;
         private String risk_queue;
         private String bo_queue ;
+        private MomRequestExecutor riskRexec = null;
+        private MomRequestExecutor boRexec = null;
 
         public MiddleOfficeWorker(MomClient cli, String rq, String bq) {
             client     = cli;
             risk_queue = rq;
             bo_queue   = bq;
+            riskRexec = client.createRequestExecutor();
+            boRexec = client.createRequestExecutor();
         }
 
         @Override
         public Map<String, Object> apply(final Map<String, Object> message) {
             System.out.println("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                                message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-            Map<String, Object> reply = client.getRequestExecutor().RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
+            Map<String, Object> reply = riskRexec.RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
+            System.out.println("Forward front request to risk service : DONE");
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     System.out.println("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                                         message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-                    client.getRequestExecutor().RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
+                    boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
+                    System.out.println("Forward front request to back office : DONE");
                 }
             }).start();
 

@@ -29,6 +29,8 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomService;
 import net.echinopsii.ariane.community.scenarios.momcli.MomServiceFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -50,7 +52,7 @@ public class Client implements MomClient {
     public static final String RBQ_VERSION_KEY  = "version";
 
     private MomServiceFactory serviceFactory ;
-    private MomRequestExecutor requestExecutor;
+    private List<MomRequestExecutor> requestExecutors = new ArrayList<MomRequestExecutor>();
 
     private ActorSystem       system     = ActorSystem.create("MySystem");
     private String            clientID   = null;
@@ -84,11 +86,12 @@ public class Client implements MomClient {
         connection = factory.newConnection();
 
         serviceFactory = new ServiceFactory(this);
-        requestExecutor = new RequestExecutor(this);
     }
 
     @Override
     public void close() throws IOException {
+        for (MomRequestExecutor rexec : requestExecutors)
+            ((RequestExecutor)rexec).stop();
         if (serviceFactory!=null)
             for (MomService<ActorRef> service : ((ServiceFactory)serviceFactory).getServices())
                 service.stop();
@@ -107,8 +110,15 @@ public class Client implements MomClient {
     }
 
     @Override
-    public MomRequestExecutor getRequestExecutor() {
-        return requestExecutor;
+    public MomRequestExecutor createRequestExecutor() {
+        MomRequestExecutor ret = null;
+        try {
+            ret = new RequestExecutor(this);
+            requestExecutors.add(ret);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 
     @Override

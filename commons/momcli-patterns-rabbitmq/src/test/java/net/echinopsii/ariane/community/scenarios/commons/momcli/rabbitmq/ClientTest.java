@@ -61,7 +61,7 @@ public class ClientTest {
         if (client!=null) {
             assertTrue(client.isConnected());
             assertNotNull(client.getConnection());
-            assertNotNull(client.getRequestExecutor());
+            assertNotNull(client.createRequestExecutor());
             assertNotNull(client.getServiceFactory());
         }
     }

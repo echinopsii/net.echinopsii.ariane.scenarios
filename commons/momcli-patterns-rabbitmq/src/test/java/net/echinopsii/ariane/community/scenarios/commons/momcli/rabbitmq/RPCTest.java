@@ -108,7 +108,7 @@ public class RPCTest {
 
             Map<String, Object> request = new HashMap<String, Object>();
             request.put(MomMsgTranslator.MSG_BODY, sendedRequestBody);
-            client.getRequestExecutor().RPC(request, "RPC_QUEUE", replyWorker);
+            client.createRequestExecutor().RPC(request, "RPC_QUEUE", replyWorker);
 
             assertTrue(requestWorker.isOK());
             assertTrue(replyWorker.isOK());
