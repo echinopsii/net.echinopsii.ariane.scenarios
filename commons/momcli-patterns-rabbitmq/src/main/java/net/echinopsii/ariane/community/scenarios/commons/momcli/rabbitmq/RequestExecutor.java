@@ -23,6 +23,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.QueueingConsumer;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
+import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 import net.echinopsii.ariane.community.scenarios.momcli.MomRequestExecutor;
 
 import java.io.IOException;
@@ -49,11 +50,12 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
         try {
             channel = connection.createChannel();
 
-            channel.exchangeDeclare(FAF_EXCHANGE,EXCHANGE_TYPE_DIRECT);
+            channel.exchangeDeclare(FAF_EXCHANGE, EXCHANGE_TYPE_DIRECT);
             channel.queueDeclare(destination, false, false, false, null);
             channel.queueBind(destination, FAF_EXCHANGE, destination);
 
             Message message = new MsgTranslator().encode(request);
+            request.put(MomMsgTranslator.MSG_APPLICATION_ID, momClient.getClientID());
             channel.basicPublish(FAF_EXCHANGE, destination, (com.rabbitmq.client.AMQP.BasicProperties) message.getProperties(), message.getBody());
 
         } catch (IOException e) {
@@ -71,6 +73,11 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
 
     @Override
     public Map<String, Object> RPC(Map<String, Object> request, String destination, AppMsgWorker answerCB) {
+        return RPC(request, destination, null, answerCB);
+    }
+
+    @Override
+    public Map<String, Object> RPC(Map<String, Object> request, String destination, String replySource, AppMsgWorker answerCB) {
         final Connection connection = momClient.getConnection();
         Channel channel = null;
         Map<String, Object> response = null;
@@ -81,13 +88,20 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
             channel.queueDeclare(destination, false, false, false, null);
             channel.queueBind(destination, RPC_EXCHANGE, destination);
 
-            String replyQueueName = channel.queueDeclare().getQueue();
+            String replyQueueName;
+            if (replySource==null) {
+                replyQueueName = channel.queueDeclare().getQueue();
+            } else {
+                replyQueueName = replySource;
+                channel.queueDeclare(replyQueueName, false, true, false, null);
+            }
             QueueingConsumer consumer = new QueueingConsumer(channel);
             channel.basicConsume(replyQueueName, true, consumer);
 
             String corrId = UUID.randomUUID().toString();
             request.put(MsgTranslator.MSG_CORRELATION_ID, corrId);
             request.put(MsgTranslator.MSG_REPLY_TO, replyQueueName);
+            request.put(MomMsgTranslator.MSG_APPLICATION_ID, momClient.getClientID());
 
             Message message = new MsgTranslator().encode(request);
             channel.basicPublish(RPC_EXCHANGE, destination, (com.rabbitmq.client.AMQP.BasicProperties) message.getProperties(), message.getBody());

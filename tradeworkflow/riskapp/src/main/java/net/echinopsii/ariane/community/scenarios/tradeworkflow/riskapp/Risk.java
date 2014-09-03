@@ -35,7 +35,7 @@ public class Risk {
     class RiskWorker implements AppMsgWorker {
         @Override
         public Map<String, Object> apply(Map<String, Object> message) {
-            System.out.println("Risk service work on  : {" + message.get("NAME") + "," +
+            System.out.println("Risk service work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                                 message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 new Thread().sleep(1000);

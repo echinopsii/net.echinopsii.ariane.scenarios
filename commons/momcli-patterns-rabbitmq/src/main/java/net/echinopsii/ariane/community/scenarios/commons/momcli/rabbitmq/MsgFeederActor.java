@@ -69,6 +69,7 @@ public class MsgFeederActor extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         if (message instanceof String && ((String)message).equals(AppMsgFeeder.MSG_FEED_NOW)) {
             Map<String, Object> newFeed = msgFeeder.apply();
+            newFeed.put(MsgTranslator.MSG_APPLICATION_ID, client.getClientID());
             Message newFeedMsg = translator.encode(newFeed);
             channel.basicPublish(baseDest, selector, (com.rabbitmq.client.AMQP.BasicProperties) newFeedMsg.getProperties(), newFeedMsg.getBody());
         } else

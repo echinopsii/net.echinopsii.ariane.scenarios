@@ -19,7 +19,6 @@
 
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
-import junit.framework.Assert;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
@@ -88,7 +87,7 @@ public class FireAndForgetTest {
 
             Map<String, Object> message = new HashMap<String, Object>();
             message.put(MomMsgTranslator.MSG_BODY, sendedMsgBody);
-            client.getRequestFactory().fireAndForget(message, "FAF_QUEUE");
+            client.getRequestExecutor().fireAndForget(message, "FAF_QUEUE");
 
             Thread.sleep(1000);
 

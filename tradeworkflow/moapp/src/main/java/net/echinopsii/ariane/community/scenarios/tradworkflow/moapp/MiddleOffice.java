@@ -26,7 +26,6 @@ import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -59,16 +58,16 @@ public class MiddleOffice {
 
         @Override
         public Map<String, Object> apply(final Map<String, Object> message) {
-            System.out.println("Forward front request to risk service : {" + message.get("NAME") + "," +
+            System.out.println("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                                message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-            Map<String, Object> reply = client.getRequestFactory().RPC(message, risk_queue, new RiskReplyWorker());
+            Map<String, Object> reply = client.getRequestExecutor().RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
 
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    System.out.println("Forward front request to back office : {" + message.get("NAME") + "," +
+                    System.out.println("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                                         message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-                    client.getRequestFactory().RPC(message, bo_queue, new BOReplyWorker());
+                    client.getRequestExecutor().RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
                 }
             }).start();
 

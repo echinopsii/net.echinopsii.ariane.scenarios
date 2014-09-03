@@ -34,7 +34,6 @@ public class MsgRequestActor extends UntypedActor {
     private Client       client      = null;
     private Channel      channel     = null;
 
-
     public static Props props(final Client mclient, final Channel channel, final AppMsgWorker worker) {
         return Props.create(new Creator<MsgRequestActor>() {
             private static final long serialVersionUID = 1L;
@@ -66,8 +65,10 @@ public class MsgRequestActor extends UntypedActor {
             Map<String, Object> reply = msgWorker.apply(finalMessage);
             if (properties.getReplyTo()!=null && properties.getCorrelationId()!=null && reply!=null) {
                 reply.put(MsgTranslator.MSG_CORRELATION_ID, properties.getCorrelationId());
+                reply.put(MsgTranslator.MSG_APPLICATION_ID, client.getClientID());
                 Message replyMessage = translator.encode(reply);
-                channel.basicPublish("", properties.getReplyTo(), (AMQP.BasicProperties) replyMessage.getProperties(), replyMessage.getBody());
+                String replyTo = properties.getReplyTo();
+                channel.basicPublish("", replyTo, (AMQP.BasicProperties) replyMessage.getProperties(), replyMessage.getBody());
             }
             channel.basicAck(((QueueingConsumer.Delivery)message).getEnvelope().getDeliveryTag(), false);
         } else

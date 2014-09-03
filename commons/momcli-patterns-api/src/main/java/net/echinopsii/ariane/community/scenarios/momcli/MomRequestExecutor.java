@@ -38,4 +38,6 @@ public interface MomRequestExecutor<Q, C extends AppMsgWorker> {
      * @return the answer message
      */
     public Map<String, Object> RPC(Map<String, Object> request, Q destination, C answerCB);
+
+    public Map<String, Object> RPC(Map<String, Object> request, String destination, String replySource, AppMsgWorker answerCB);
 }

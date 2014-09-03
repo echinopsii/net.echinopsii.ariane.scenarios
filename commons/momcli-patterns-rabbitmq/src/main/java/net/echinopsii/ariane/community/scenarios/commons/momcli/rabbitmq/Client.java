@@ -20,7 +20,6 @@
 package net.echinopsii.ariane.community.scenarios.commons.momcli.rabbitmq;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -51,22 +50,28 @@ public class Client implements MomClient {
     public static final String RBQ_VERSION_KEY  = "version";
 
     private MomServiceFactory serviceFactory ;
-    private MomRequestExecutor requestFactory ;
+    private MomRequestExecutor requestExecutor;
 
-    private ActorSystem system     = ActorSystem.create("MySystem");
-    private Connection  connection = null;
+    private ActorSystem       system     = ActorSystem.create("MySystem");
+    private String            clientID   = null;
+    private ConnectionFactory factory    = null;
+    private Connection        connection = null;
 
     @Override
     public void init(Properties properties) throws IOException {
-        ConnectionFactory factory = new ConnectionFactory();
+        factory = new ConnectionFactory();
         factory.setHost((String) properties.get(MOM_HOST));
         factory.setPort(new Integer((String)properties.get(MOM_PORT)));
 
         Map<String, Object> factoryProperties = factory.getClientProperties();
         if (properties.getProperty(PROP_PRODUCT_KEY)!=null)
             factoryProperties.put(RBQ_PRODUCT_KEY,properties.getProperty(PROP_PRODUCT_KEY));
-        if (properties.getProperty(PROP_INFORMATION_KEY)!=null)
-            factoryProperties.put(RBQ_INFORMATION_KEY,properties.getProperty(PROP_INFORMATION_KEY));
+        if (properties.getProperty(PROP_INFORMATION_KEY)!=null) {
+            clientID = properties.getProperty(PROP_INFORMATION_KEY);
+            factoryProperties.put(RBQ_INFORMATION_KEY, clientID);
+        } else {
+            clientID = (String)properties.get(RBQ_INFORMATION_KEY);
+        }
         if (properties.getProperty(PROP_PLATFORM_KEY)!=null)
             factoryProperties.put(RBQ_PLATFORM_KEY,properties.getProperty(PROP_PLATFORM_KEY));
         else
@@ -79,7 +84,7 @@ public class Client implements MomClient {
         connection = factory.newConnection();
 
         serviceFactory = new ServiceFactory(this);
-        requestFactory = new RequestExecutor(this);
+        requestExecutor = new RequestExecutor(this);
     }
 
     @Override
@@ -102,13 +107,18 @@ public class Client implements MomClient {
     }
 
     @Override
-    public MomRequestExecutor getRequestFactory() {
-        return requestFactory;
+    public MomRequestExecutor getRequestExecutor() {
+        return requestExecutor;
     }
 
     @Override
     public MomServiceFactory getServiceFactory() {
         return serviceFactory;
+    }
+
+    @Override
+    public String getClientID() {
+        return clientID;
     }
 
     public ActorSystem getActorSystem() {

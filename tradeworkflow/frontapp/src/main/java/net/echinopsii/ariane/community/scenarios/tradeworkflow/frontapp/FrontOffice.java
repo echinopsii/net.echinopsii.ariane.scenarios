@@ -22,6 +22,7 @@ package net.echinopsii.ariane.community.scenarios.tradeworkflow.frontapp;
 import net.echinopsii.ariane.community.scenarios.momcli.AppMsgWorker;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClient;
 import net.echinopsii.ariane.community.scenarios.momcli.MomClientFactory;
+import net.echinopsii.ariane.community.scenarios.momcli.MomMsgTranslator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,17 +87,21 @@ public class FrontOffice {
         }
 
         private MomClient           client;
-        private String              baseTopic;
+        //private String              baseTopic;
         private String              moQueue;
+        private int                 mindiff=10;
+        private int                 stockblksize=10;
         private List<AcquiredStock> acquiredStocks = new ArrayList<AcquiredStock>();
 
         private long position;
 
-        public FrontOfficeWorker(MomClient cli, String topic, String queue) {
+        public FrontOfficeWorker(MomClient cli, /*String topic,*/ String queue, int mindiff_, int stockblksize_) {
             client    = cli;
-            baseTopic = topic;
+            //baseTopic = topic;
             moQueue   = queue;
             position  = 100000;
+            mindiff   = mindiff_;
+            stockblksize = stockblksize_;
         }
 
         @Override
@@ -105,7 +110,7 @@ public class FrontOffice {
             String name  = message.get("NAME").toString();
             long   price = (Long) message.get("PRICE");
 
-            System.out.println("Received {"+name+","+price+"}");
+            System.out.println("Received {"+ message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," +name+","+price+"}");
 
             AcquiredStock allReaddyAcquired = null;
             for (AcquiredStock acquiredStock : acquiredStocks) {
@@ -116,23 +121,23 @@ public class FrontOffice {
             }
 
             if (allReaddyAcquired==null) {
-                if (price * 10 < position) {
+                if (price * stockblksize < position) {
                     message.put("ORDER", "BUY");
-                    message.put("QUANTITY", 10);
-                    client.getRequestFactory().RPC(message, moQueue, null);
-                    System.out.println("10 stocks {"+name+","+price+"} acquired...");
-                    acquiredStocks.add(new AcquiredStock(name, price, 10));
-                    position -= price*10;
+                    message.put("QUANTITY", stockblksize);
+                    client.getRequestExecutor().RPC(message, moQueue, client.getClientID()+"Q", null);
+                    System.out.println(stockblksize + " stocks {"+name+","+price+"} acquired...");
+                    acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
+                    position -= price*stockblksize;
                     System.out.println("New position : " + position);
                 }
             } else {
-                if (allReaddyAcquired.getAcquiredPrice()<(price-10)) {
+                if (allReaddyAcquired.getAcquiredPrice()<(price-mindiff)) {
                     message.put("ORDER","SELL");
-                    message.put("QUANTITY", 10);
-                    client.getRequestFactory().RPC(message, moQueue, null);
-                    System.out.println("10 stocks {"+name+","+price+"} sold...");
+                    message.put("QUANTITY", stockblksize);
+                    client.getRequestExecutor().RPC(message, moQueue, client.getClientID()+"Q", null);
+                    System.out.println(stockblksize+" stocks {"+name+","+price+"} sold...");
                     acquiredStocks.remove(allReaddyAcquired);
-                    position += price*10;
+                    position += price*stockblksize;
                     System.out.println("New position : " + position);
                 }
             }
@@ -144,10 +149,14 @@ public class FrontOffice {
 
     private static final String PROPS_FIELD_FO_FEEDER_BASE_TOPIC = "front_office.feeder_base_topic";
     private static final String PROPS_FIELD_FO_MO_QUEUE          = "front_office.mo_queue";
+    private static final String PROPS_FIELD_FO_STOCKS_BLOCK_SIZE = "front_office.stocks_block_size";
+    private static final String PROPS_FIELD_FO_STOCK_SOLD_MINDIF = "front_office.stocks_sold_mindif";
     private MomClient client = null;
 
     public void start(Properties properties) {
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
+            int block_size=10;
+            int min_diff=10;
             if (properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC)==null) {
                 System.err.println("Error while initializing Front Office service : feeder base topic isn't defined...");
                 return;
@@ -157,6 +166,12 @@ public class FrontOffice {
                 System.err.println("Error while initializing Front Office service : mo queue isn't defined...");
                 return;
             }
+
+            if (properties.getProperty(PROPS_FIELD_FO_STOCKS_BLOCK_SIZE)!=null)
+                block_size=new Integer(properties.getProperty(PROPS_FIELD_FO_STOCKS_BLOCK_SIZE));
+
+            if (properties.getProperty(PROPS_FIELD_FO_STOCK_SOLD_MINDIF)!=null)
+                min_diff=new Integer(properties.getProperty(PROPS_FIELD_FO_STOCK_SOLD_MINDIF));
 
             try {
                 client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
@@ -178,8 +193,8 @@ public class FrontOffice {
 
             client.getServiceFactory().subscriberService(properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),null,
                                                          new FrontOfficeWorker(client,
-                                                                               properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),
-                                                                               properties.getProperty(PROPS_FIELD_FO_MO_QUEUE)));
+                                                                               /*properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),*/
+                                                                               properties.getProperty(PROPS_FIELD_FO_MO_QUEUE), min_diff, block_size));
             System.out.println("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));
         }
     }

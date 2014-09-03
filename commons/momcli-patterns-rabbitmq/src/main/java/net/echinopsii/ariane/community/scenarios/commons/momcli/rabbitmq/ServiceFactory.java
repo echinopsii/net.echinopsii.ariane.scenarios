@@ -161,8 +161,9 @@ public class ServiceFactory implements MomServiceFactory<Service, AppMsgWorker, 
                     try {
                         channel = connection.createChannel();
                         channel.exchangeDeclare(baseSource, "topic");
-                        String queueName = channel.queueDeclare().getQueue();
 
+                        String queueName = momClient.getClientID()+"_SUBS_2_"+baseSource+"."+select;
+                        channel.queueDeclare(queueName, false, true, false, null);
                         channel.queueBind(queueName, baseSource, select);
 
                         QueueingConsumer consumer = new QueueingConsumer(channel);

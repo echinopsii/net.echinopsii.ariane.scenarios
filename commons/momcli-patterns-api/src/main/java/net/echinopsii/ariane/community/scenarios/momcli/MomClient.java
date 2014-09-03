@@ -26,11 +26,13 @@ public interface MomClient {
     public final static String MOM_HOST = "mom_host.fqdn";
     public final static String MOM_PORT = "mom_host.port";
 
+    public String getClientID();
+
     public void   init(Properties properties) throws Exception;
     public void   close() throws Exception;
 
     public Object getConnection();
     public boolean isConnected();
-    public MomRequestExecutor getRequestFactory();
+    public MomRequestExecutor getRequestExecutor();
     public MomServiceFactory getServiceFactory();
 }
