@@ -93,7 +93,6 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
                 consumers.put(replyQueueName, consumer);
             }
 
-
             String corrId = UUID.randomUUID().toString();
             request.put(MsgTranslator.MSG_CORRELATION_ID, corrId);
             request.put(MsgTranslator.MSG_REPLY_TO, replyQueueName);
@@ -128,7 +127,7 @@ public class RequestExecutor extends Client implements MomRequestExecutor<String
     }
 
     public void stop() throws IOException {
-        channel.close();
         consumers.clear();
+        channel.close();
     }
 }

@@ -51,6 +51,8 @@ public class Client implements MomClient {
     public static final String PROP_VERSION_KEY = "mom_cli.rabbitmq.version";
     public static final String RBQ_VERSION_KEY  = "version";
 
+    public static final String PROP_ARIANE_KEYS  = "ariane";
+
     private MomServiceFactory serviceFactory ;
     private List<MomRequestExecutor> requestExecutors = new ArrayList<MomRequestExecutor>();
 
@@ -82,6 +84,10 @@ public class Client implements MomClient {
             factoryProperties.put(RBQ_COPYRIGHT_KEY, properties.getProperty(PROP_COPYRIGHT_KEY));
         if (properties.getProperty(PROP_VERSION_KEY)!=null)
             factoryProperties.put(RBQ_VERSION_KEY, properties.getProperty(PROP_VERSION_KEY));
+
+        for (Object key : properties.keySet())
+            if (key instanceof String && ((String)key).startsWith(PROP_ARIANE_KEYS))
+                factoryProperties.put((String)key, properties.getProperty((String)key));
 
         connection = factory.newConnection();
 
