@@ -54,19 +54,19 @@ public class ConnectorTest {
         connector3.stop();
     }
 
-    @Test
+    //@Test
     public void testConnectionCassandra1() throws Exception {
         connector1.start();
         assertNotNull(connector1.getSession());
     }
 
-    @Test
+    //@Test
     public void testConnectionCassandra2() throws Exception {
         connector2.start();
         assertNotNull(connector2.getSession());
     }
 
-    @Test
+    //@Test
     public void testConnectionCassandra3() throws Exception {
         connector3.start();
         assertNotNull(connector3.getSession());
