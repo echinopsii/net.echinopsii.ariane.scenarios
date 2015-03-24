@@ -1,0 +1,20 @@
+<assembly>
+    <formats>
+        <format>zip</format>
+    </formats>
+
+    <fileSets>
+        <fileSet>
+            <directory>./</directory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+            <excludes>
+                <exclude>*.xml</exclude>
+                <exclude>target/</exclude>
+                <exclude>sample/</exclude>
+            </excludes>
+            <outputDirectory>distrib</outputDirectory>
+        </fileSet>
+    </fileSets>
+</assembly>
