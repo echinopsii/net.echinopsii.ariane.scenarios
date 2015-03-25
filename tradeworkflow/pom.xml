@@ -16,10 +16,10 @@
     <packaging>pom</packaging>
 	
     <modules>
-	<module>boapp</module>
-	<module>feederapp</module>
-	<module>moapp</module>
-    <module>riskapp</module>
-	<module>frontapp</module>
+        <module>boapp</module>
+        <module>feederapp</module>
+        <module>moapp</module>
+        <module>riskapp</module>
+        <module>frontapp</module>
     </modules>
 </project>
