@@ -17,8 +17,5 @@
 	
     <modules>
         <module>cassandra-connector</module>
-	    <module>momcli-patterns-api</module>
-	    <module>momcli-patterns-rabbitmq</module>
-	    <module>momcli-patterns-jms</module>
     </modules>
 </project>

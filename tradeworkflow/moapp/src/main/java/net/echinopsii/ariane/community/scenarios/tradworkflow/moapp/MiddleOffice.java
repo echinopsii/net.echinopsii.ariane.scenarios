@@ -19,7 +19,7 @@
 
 package net.echinopsii.ariane.community.scenarios.tradworkflow.moapp;
 
-import net.echinopsii.ariane.community.scenarios.momcli.*;
+import net.echinopsii.ariane.community.messaging.api.*;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -11,8 +11,8 @@
 	
     <modules>
         <module>commons</module>
-        <module>distrib</module>
         <module>tradeworkflow</module>
+        <module>distrib</module>
     </modules>
 
     <repositories>
