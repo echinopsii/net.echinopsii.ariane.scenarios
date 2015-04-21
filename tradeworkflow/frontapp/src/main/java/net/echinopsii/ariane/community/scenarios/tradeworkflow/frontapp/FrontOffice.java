@@ -19,7 +19,7 @@
 
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.frontapp;
 
-import net.echinopsii.ariane.community.messaging.api.*;
+import net.echinopsii.ariane.community.core.messaging.api.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -83,13 +83,13 @@ public class FrontOffice {
             }
         }
 
-        private MomClient           client;
+        private MomClient client;
         //private String              baseTopic;
         private String              moQueue;
         private int                 mindiff=10;
         private int                 stockblksize=10;
         private List<AcquiredStock> acquiredStocks = new ArrayList<AcquiredStock>();
-        private MomRequestExecutor  moRexec = null;
+        private MomRequestExecutor moRexec = null;
 
         private long position;
 

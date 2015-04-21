@@ -19,10 +19,10 @@
 
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.riskapp;
 
-import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
-import net.echinopsii.ariane.community.messaging.api.MomClient;
-import net.echinopsii.ariane.community.messaging.api.MomClientFactory;
-import net.echinopsii.ariane.community.messaging.api.MomMsgTranslator;
+import net.echinopsii.ariane.community.core.messaging.api.AppMsgWorker;
+import net.echinopsii.ariane.community.core.messaging.api.MomClient;
+import net.echinopsii.ariane.community.core.messaging.api.MomClientFactory;
+import net.echinopsii.ariane.community.core.messaging.api.MomMsgTranslator;
 
 import java.io.IOException;
 import java.io.InputStream;
