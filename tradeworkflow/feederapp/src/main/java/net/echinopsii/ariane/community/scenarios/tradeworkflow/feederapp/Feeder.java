@@ -21,7 +21,7 @@ package net.echinopsii.ariane.community.scenarios.tradeworkflow.feederapp;
 
 import net.echinopsii.ariane.community.messaging.api.AppMsgFeeder;
 import net.echinopsii.ariane.community.messaging.api.MomClient;
-import net.echinopsii.ariane.community.messaging.api.MomClientFactory;
+import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;

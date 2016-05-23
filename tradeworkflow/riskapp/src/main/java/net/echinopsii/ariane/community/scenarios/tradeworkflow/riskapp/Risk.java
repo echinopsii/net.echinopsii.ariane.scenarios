@@ -21,7 +21,7 @@ package net.echinopsii.ariane.community.scenarios.tradeworkflow.riskapp;
 
 import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
 import net.echinopsii.ariane.community.messaging.api.MomClient;
-import net.echinopsii.ariane.community.messaging.api.MomClientFactory;
+import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 import net.echinopsii.ariane.community.messaging.api.MomMsgTranslator;
 
 import java.io.IOException;

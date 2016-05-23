@@ -20,6 +20,7 @@
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.frontapp;
 
 import net.echinopsii.ariane.community.messaging.api.*;
+import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
