@@ -22,21 +22,35 @@ package net.echinopsii.ariane.community.scenarios.cassandra;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
+import java.util.HashMap;
 import java.util.Properties;
 
 public class Connector {
     public final static String PROPS_FIELD_CASS_CONTACT_POINTS = "cassandra.contact_points";
     public final static String PROPS_FIELD_CASS_KEYSPACE       = "cassandra.keyspace";
+    public final static String PROPS_FIELD_CASS_REP_STRAT      = "cassandra.keyspace.replication_strategy";
+    public final static String PROPS_FIELD_CASS_REP_FACTOR     = "cassandra.keyspace.replication_factors";
 
     private String[] contactPoints;
     private Cluster cluster;
 
     private String  keySpace ;
+    private String  keySpaceRepStrat = "SimpleStrategy";
+    private HashMap<String, String> keySpaceRepFactor = new HashMap<String, String>();
     private Session session;
 
     public Connector(Properties conf) {
         this.contactPoints = ((String) conf.get(PROPS_FIELD_CASS_CONTACT_POINTS)).split(",");
         this.keySpace = (String) conf.get(PROPS_FIELD_CASS_KEYSPACE);
+        if (conf.containsKey(PROPS_FIELD_CASS_REP_STRAT))
+            this.keySpaceRepStrat = (String) conf.get(PROPS_FIELD_CASS_REP_STRAT);
+        if (conf.containsKey(PROPS_FIELD_CASS_REP_FACTOR)) {
+            for (String dc_rep : ((String)conf.get(PROPS_FIELD_CASS_REP_FACTOR)).split(",")) {
+                String dc_name = dc_rep.split(":")[0];
+                String rep_factor = dc_rep.split(":")[1];
+                this.keySpaceRepFactor.put(dc_name, rep_factor);
+            }
+        }
     }
 
     public Session start() throws Exception {
@@ -45,18 +59,34 @@ public class Connector {
             for (String contactPoint : contactPoints)
                 builder.addContactPoint(contactPoint);
             this.cluster = builder.build();
-            if (keySpace!=null && !keySpace.equals(""))
-                this.session = cluster.connect(keySpace);
-            else
-                this.session = cluster.connect();
+            this.session = cluster.connect();
+            if (keySpace!=null && !keySpace.equals("")) {
+                String keyspaceCreateStatement;
+                if (this.keySpaceRepStrat.equals("SimpleStrategy")) {
+                    String replicationFactor = (keySpaceRepFactor.size()==1) ? (String) keySpaceRepFactor.values().toArray()[0] : "1";
+                    keyspaceCreateStatement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH REPLICATION = { " +
+                            "'class' : '" + this.keySpaceRepStrat + "', " +
+                            "'replication_factor' : " + replicationFactor + " }";
+                } else {
+                    String dcReplicationFactors = "";
+                    for (String dc : this.keySpaceRepFactor.keySet()) {
+                        String dcReplicationFactor = this.keySpaceRepFactor.get(dc);
+                        dcReplicationFactors += ", '" + dc + "' : " + dcReplicationFactor;
+                    }
+                    keyspaceCreateStatement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH REPLICATION = { " +
+                            "'class' : '" + this.keySpaceRepStrat + "'" + dcReplicationFactors + " }";
+                }
+                this.session.execute(keyspaceCreateStatement);
+                this.session.execute("USE " + this.keySpace);
+            }
         } else
             throw new Exception("Cassandra contact points badly defined !");
         return session;
     }
 
     public void stop() {
-        if (this.cluster!=null)
-            this.cluster.close();
+        if (this.session!=null) this.session.close();
+        if (this.cluster!=null) this.cluster.close();
     }
 
     public Session getSession() {
