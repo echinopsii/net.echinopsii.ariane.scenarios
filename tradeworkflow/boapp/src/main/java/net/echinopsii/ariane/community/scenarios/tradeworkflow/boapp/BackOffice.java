@@ -23,6 +23,7 @@ import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
 import net.echinopsii.ariane.community.messaging.api.MomClient;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 import net.echinopsii.ariane.community.messaging.api.MomMsgTranslator;
+import net.echinopsii.ariane.community.scenarios.cassandra.Connector;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,10 +34,9 @@ import java.util.Properties;
 public class BackOffice {
 
     class BackOfficeWorker implements AppMsgWorker {
-        @Override
         public Map<String, Object> apply(Map<String, Object> message) {
             System.out.println("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                                message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 new Thread().sleep(1000);
             } catch (InterruptedException e) {
@@ -50,42 +50,62 @@ public class BackOffice {
     }
 
     private static final String PROPS_FIELD_BOQUEUE = "back_office.queue";
-    private static String backOffiqueQueue = "BOQUEUE";
+    private static String backOfficeQueue = "BOQUEUE";
 
-    private MomClient client = null;
+    private MomClient momClient = null;
+    private Connector cassandraConnector = null;
 
     public void start(Properties properties) {
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
             try {
-                client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
+                momClient = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM client : " + e.getMessage());
-                System.err.println("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
+                System.err.println("Error while loading MoM momClient : " + e.getMessage());
+                System.err.println("Provided MoM momClient : " + properties.get(MomClient.MOM_CLI));
                 return;
             }
 
             try {
-                client.init(properties);
+                momClient.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM client : " + e.getMessage());
+                System.err.println("Error while initializing MoM Client : " + e.getMessage());
                 System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
                 System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
-                client = null;
+                momClient = null;
                 return;
             }
 
             if (properties.getProperty(PROPS_FIELD_BOQUEUE)!=null)
-                backOffiqueQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
+                backOfficeQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
 
-            client.getServiceFactory().requestService(backOffiqueQueue, new BackOfficeWorker());
-            System.out.println("Back office waiting requests on " + backOffiqueQueue + "...");
+            momClient.getServiceFactory().requestService(backOfficeQueue, new BackOfficeWorker());
+            System.out.println("Back office waiting requests on " + backOfficeQueue + "...");
+        }
+
+        if (properties != null && properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS) != null && properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE) !=null) {
+            cassandraConnector = new Connector(properties);
+            try {
+                cassandraConnector.start();
+            } catch (Exception e) {
+                System.err.println("Error while initializing Cassandra connector : " + e.getMessage());
+                System.err.println("Provided Cassandra contact points: " + properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS));
+                System.err.println("Provided Cassandra keyspace : " + properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE));
+                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_STRAT))
+                    System.err.println("Provided Cassandra replication strategy: " + properties.get(Connector.PROPS_FIELD_CASS_REP_STRAT));
+                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_FACTOR))
+                    System.err.println("Provided Cassandra replication factors : " + properties.get(Connector.PROPS_FIELD_CASS_REP_FACTOR));
+                cassandraConnector = null;
+                return;
+            }
         }
     }
 
     public void stop() throws Exception {
         System.out.println("Stop Back Office ...");
-        if (client!=null)
-            client.close();
+        if (cassandraConnector != null)
+            cassandraConnector.stop();
+        if (momClient !=null)
+            momClient.close();
     }
 
     public static void main(String[] argv) throws IOException {

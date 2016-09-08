@@ -22,6 +22,11 @@
             <version>${version.ariane.messaging}</version>
         </dependency>
         <dependency>
+            <groupId>net.echinopsii.ariane.community.scenarios.commons</groupId>
+            <artifactId>net.echinopsii.ariane.community.scenarios.commons.cassandra-connector</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>

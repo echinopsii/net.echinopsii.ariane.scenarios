@@ -70,7 +70,7 @@
         <version.license.plugin>1.5</version.license.plugin>
         <version.war.plugin>2.1.1</version.war.plugin>
         <version.ipojo.plugin>1.11.0</version.ipojo.plugin>
-        <version.ariane.messaging>0.1.1-SNAPSHOT</version.ariane.messaging>
+        <version.ariane.messaging>0.2.2-SNAPSHOT</version.ariane.messaging>
 
         <!-- jUnit test version -->
         <version.junit.junit>4.11</version.junit.junit>
