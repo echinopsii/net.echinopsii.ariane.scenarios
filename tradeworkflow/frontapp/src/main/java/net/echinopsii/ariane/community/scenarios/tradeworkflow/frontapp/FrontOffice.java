@@ -104,7 +104,7 @@ public class FrontOffice {
             moRexec = client.createRequestExecutor();
         }
 
-        @Override
+        //@Override
         public Map<String, Object> apply(Map<String, Object> message) {
             //System.out.println(message.toString());
             String name  = message.get("NAME").toString();

@@ -34,11 +34,24 @@ import java.util.Properties;
 public class BackOffice {
 
     class BackOfficeWorker implements AppMsgWorker {
+        private Connector cassandraConnector;
+
+        public BackOfficeWorker(Connector cassandraConnector) {
+            this.cassandraConnector = cassandraConnector;
+        }
+
         public Map<String, Object> apply(Map<String, Object> message) {
             System.out.println("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                     message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
-                new Thread().sleep(1000);
+                if (this.cassandraConnector==null)
+                    new Thread().sleep(1000);
+                else {
+                    String insertStatement = "INSERT INTO back_office_orders_history(order_time, order, stock_name, stock_price, quantity) " +
+                            "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
+                            message.get("PRICE") + ", " + message.get("QUANTITY") + ")";
+                    this.cassandraConnector.getSession().execute(insertStatement);
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -56,6 +69,27 @@ public class BackOffice {
     private Connector cassandraConnector = null;
 
     public void start(Properties properties) {
+        if (properties != null && properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS) != null && properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE) !=null) {
+            cassandraConnector = new Connector(properties);
+            try {
+                cassandraConnector.start();
+                String tableCreationStatement = "CREATE TABLE back_office_orders_history " +
+                        "(order_time time, order text, stock_name text, " +
+                        "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) )";
+                cassandraConnector.getSession().execute(tableCreationStatement);
+            } catch (Exception e) {
+                System.err.println("Error while initializing Cassandra connector : " + e.getMessage());
+                System.err.println("Provided Cassandra contact points: " + properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS));
+                System.err.println("Provided Cassandra keyspace : " + properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE));
+                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_STRAT))
+                    System.err.println("Provided Cassandra replication strategy: " + properties.get(Connector.PROPS_FIELD_CASS_REP_STRAT));
+                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_FACTOR))
+                    System.err.println("Provided Cassandra replication factors : " + properties.get(Connector.PROPS_FIELD_CASS_REP_FACTOR));
+                cassandraConnector = null;
+            }
+
+        }
+
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
             try {
                 momClient = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
@@ -78,25 +112,8 @@ public class BackOffice {
             if (properties.getProperty(PROPS_FIELD_BOQUEUE)!=null)
                 backOfficeQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
 
-            momClient.getServiceFactory().requestService(backOfficeQueue, new BackOfficeWorker());
+            momClient.getServiceFactory().requestService(backOfficeQueue, new BackOfficeWorker(this.cassandraConnector));
             System.out.println("Back office waiting requests on " + backOfficeQueue + "...");
-        }
-
-        if (properties != null && properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS) != null && properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE) !=null) {
-            cassandraConnector = new Connector(properties);
-            try {
-                cassandraConnector.start();
-            } catch (Exception e) {
-                System.err.println("Error while initializing Cassandra connector : " + e.getMessage());
-                System.err.println("Provided Cassandra contact points: " + properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS));
-                System.err.println("Provided Cassandra keyspace : " + properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE));
-                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_STRAT))
-                    System.err.println("Provided Cassandra replication strategy: " + properties.get(Connector.PROPS_FIELD_CASS_REP_STRAT));
-                if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_FACTOR))
-                    System.err.println("Provided Cassandra replication factors : " + properties.get(Connector.PROPS_FIELD_CASS_REP_FACTOR));
-                cassandraConnector = null;
-                return;
-            }
         }
     }
 
