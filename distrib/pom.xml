@@ -24,7 +24,7 @@
                                 <artifactItem>
                                     <groupId>com.datastax.cassandra</groupId>
                                     <artifactId>cassandra-driver-core</artifactId>
-                                    <version>2.1.5</version>
+                                    <version>3.1.0</version>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>com.typesafe.akka</groupId>
@@ -64,12 +64,12 @@
                                 <artifactItem>
                                     <groupId>net.echinopsii.ariane.community.messaging</groupId>
                                     <artifactId>net.echinopsii.ariane.community.messaging.api</artifactId>
-                                    <version>0.1.1-SNAPSHOT</version>
+                                    <version>0.2.2-SNAPSHOT</version>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>net.echinopsii.ariane.community.messaging</groupId>
                                     <artifactId>net.echinopsii.ariane.community.messaging.rabbitmq</artifactId>
-                                    <version>0.1.1-SNAPSHOT</version>
+                                    <version>0.2.2-SNAPSHOT</version>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>net.echinopsii.ariane.community.scenarios.commons</groupId>
