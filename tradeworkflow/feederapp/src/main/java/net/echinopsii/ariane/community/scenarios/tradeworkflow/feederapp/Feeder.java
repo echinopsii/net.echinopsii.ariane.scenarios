@@ -37,7 +37,6 @@ public class Feeder {
             stockName = sname;
         }
 
-        @Override
         public Map<String, Object> apply() {
             Map<String, Object> ret = new HashMap<String, Object>();
             ret.put("NAME", stockName);
@@ -47,7 +46,6 @@ public class Feeder {
             return ret;
         }
 
-        @Override
         public int getInterval() {
             return interval;
         }
@@ -85,7 +83,7 @@ public class Feeder {
             if (properties.getProperty(PROPS_FIELS_STOCKSLIST)!=null) {
                 String[] stockNamesList = ((String) properties.getProperty(PROPS_FIELS_STOCKSLIST)).split(",");
                 for (String stockName : stockNamesList) {
-                    System.out.println("Load stock " + stockName + " feeder on baseTopic " + baseTopic + "...");
+                    //System.out.println("Load stock " + stockName + " feeder on baseTopic " + baseTopic + "...");
                     StockFeeder stockFeeder = new StockFeeder(stockName);
                     client.getServiceFactory().feederService(baseTopic, stockName, stockFeeder.getInterval(), stockFeeder);
                 }
@@ -109,7 +107,7 @@ public class Feeder {
         Properties properties = new Properties();
         InputStream conf = feeder.getClass().getResourceAsStream("/feeder.properties");
         if (conf==null) {
-            System.out.println("Configuration file feeder.properties not found in the classpath");
+            System.err.println("Configuration file feeder.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

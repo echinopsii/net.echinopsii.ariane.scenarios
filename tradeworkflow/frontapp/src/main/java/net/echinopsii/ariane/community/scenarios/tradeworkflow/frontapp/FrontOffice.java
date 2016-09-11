@@ -110,7 +110,7 @@ public class FrontOffice {
             String name  = message.get("NAME").toString();
             long   price = (Long) message.get("PRICE");
 
-            System.out.println("Received {"+ message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," +name+","+price+"}");
+            //System.out.println("Received {"+ message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," +name+","+price+"}");
 
             AcquiredStock allReaddyAcquired = null;
             for (AcquiredStock acquiredStock : acquiredStocks) {
@@ -125,20 +125,20 @@ public class FrontOffice {
                     message.put("ORDER", "BUY");
                     message.put("QUANTITY", stockblksize);
                     moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    System.out.println(stockblksize + " stocks {"+name+","+price+"} acquired...");
+                    //System.out.println(stockblksize + " stocks {"+name+","+price+"} acquired...");
                     acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
                     position -= price*stockblksize;
-                    System.out.println("New position : " + position);
+                    //System.out.println("New position : " + position);
                 }
             } else {
                 if (allReaddyAcquired.getAcquiredPrice()<(price-mindiff)) {
                     message.put("ORDER","SELL");
                     message.put("QUANTITY", stockblksize);
                     moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    System.out.println(stockblksize+" stocks {"+name+","+price+"} sold...");
+                    //System.out.println(stockblksize+" stocks {"+name+","+price+"} sold...");
                     acquiredStocks.remove(allReaddyAcquired);
                     position += price*stockblksize;
-                    System.out.println("New position : " + position);
+                    //System.out.println("New position : " + position);
                 }
             }
 
@@ -195,7 +195,7 @@ public class FrontOffice {
                                                          new FrontOfficeWorker(client,
                                                                                /*properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),*/
                                                                                properties.getProperty(PROPS_FIELD_FO_MO_QUEUE), min_diff, block_size));
-            System.out.println("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));
+            //System.out.println("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));
         }
     }
 
@@ -210,7 +210,7 @@ public class FrontOffice {
         Properties properties = new Properties();
         InputStream conf = frontoffice.getClass().getResourceAsStream("/frontoffice.properties");
         if (conf==null) {
-            System.out.println("Configuration file frontoffice.properties not found in the classpath");
+            System.err.println("Configuration file frontoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

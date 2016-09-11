@@ -30,14 +30,12 @@ import java.util.Properties;
 public class MiddleOffice {
 
     class RiskReplyWorker implements AppMsgWorker {
-        @Override
         public Map<String, Object> apply(Map<String, Object> message) {
             return message;
         }
     }
 
     class BOReplyWorker implements AppMsgWorker {
-        @Override
         public Map<String, Object> apply(Map<String, Object> message) {
             return message;
         }
@@ -58,20 +56,20 @@ public class MiddleOffice {
             boRexec = client.createRequestExecutor();
         }
 
-        @Override
+        //@Override
         public Map<String, Object> apply(final Map<String, Object> message) {
-            System.out.println("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                               message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            //System.out.println("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+            //                   message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             Map<String, Object> reply = riskRexec.RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
-            System.out.println("Forward front request to risk service : DONE");
+            //System.out.println("Forward front request to risk service : DONE");
 
             new Thread(new Runnable() {
-                @Override
+                //@Override
                 public void run() {
-                    System.out.println("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                                        message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                    //System.out.println("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+                    //                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
                     boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
-                    System.out.println("Forward front request to back office : DONE");
+                    //System.out.println("Forward front request to back office : DONE");
                 }
             }).start();
 
@@ -124,7 +122,7 @@ public class MiddleOffice {
             client.getServiceFactory().requestService(moQueue, new MiddleOfficeWorker(client,
                                                       properties.getProperty(PROPS_FIELD_MO_RSKQUEUE),
                                                       properties.getProperty(PROPS_FIELD_MO_BOQUEUE)));
-            System.out.println("Middle office waiting requests on " + moQueue + "...");
+            //System.out.println("Middle office waiting requests on " + moQueue + "...");
         }
     }
 
@@ -139,7 +137,7 @@ public class MiddleOffice {
         Properties properties = new Properties();
         InputStream conf = middleoffice.getClass().getResourceAsStream("/middleoffice.properties");
         if (conf==null) {
-            System.out.println("Configuration file middleoffice.properties not found in the classpath");
+            System.err.println("Configuration file middleoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

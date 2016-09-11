@@ -55,7 +55,7 @@ public class BackOffice {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println("Back Office return DONE");
+            //System.out.println("Back Office return DONE");
             Map<String, Object> reply = new HashMap<String, Object>();
             reply.put(MomMsgTranslator.MSG_BODY, "DONE");
             return reply;
@@ -113,7 +113,7 @@ public class BackOffice {
                 backOfficeQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
 
             momClient.getServiceFactory().requestService(backOfficeQueue, new BackOfficeWorker(this.cassandraConnector));
-            System.out.println("Back office waiting requests on " + backOfficeQueue + "...");
+            //System.out.println("Back office waiting requests on " + backOfficeQueue + "...");
         }
     }
 
@@ -130,7 +130,7 @@ public class BackOffice {
         Properties properties = new Properties();
         InputStream conf = backoffice.getClass().getResourceAsStream("/backoffice.properties");
         if (conf==null) {
-            System.out.println("Configuration file backoffice.properties not found in the classpath");
+            //System.out.println("Configuration file backoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);
