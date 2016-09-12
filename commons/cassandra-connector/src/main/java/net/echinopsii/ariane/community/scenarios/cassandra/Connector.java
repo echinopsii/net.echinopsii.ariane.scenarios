@@ -82,6 +82,7 @@ public class Connector {
                     keyspaceCreateStatement = "CREATE KEYSPACE IF NOT EXISTS " + keySpace + " WITH REPLICATION = { " +
                             "'class' : '" + this.keySpaceRepStrat + "'" + dcReplicationFactors + " }";
                 }
+                log.debug(keyspaceCreateStatement);
                 this.session.execute(keyspaceCreateStatement);
                 this.session.execute("USE " + this.keySpace);
             }
