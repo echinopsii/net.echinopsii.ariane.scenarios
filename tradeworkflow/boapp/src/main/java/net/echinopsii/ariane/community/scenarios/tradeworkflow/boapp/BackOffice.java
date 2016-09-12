@@ -78,7 +78,7 @@ public class BackOffice {
             try {
                 cassandraConnector.start();
                 String tableCreationStatement = "CREATE TABLE back_office_orders_history " +
-                        "(order_time time, order text, stock_name text, " +
+                        "(order_time time, order_operation text, stock_name text, " +
                         "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) )";
                 cassandraConnector.getSession().execute(tableCreationStatement);
             } catch (Exception e) {
