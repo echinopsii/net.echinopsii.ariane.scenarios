@@ -146,11 +146,6 @@
                                     <artifactId>net.echinopsii.ariane.community.scenarios.tradeworflow.riskapp</artifactId>
                                     <version>${project.version}</version>
                                 </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.slf4j</groupId>
-                                    <artifactId>slf4j-api</artifactId>
-                                    <version>1.6.4</version>
-                                </artifactItem>
                             </artifactItems>
                             <outputDirectory>${basedir}/lib</outputDirectory>
                             <!--<stripVersion>true</stripVersion>-->
