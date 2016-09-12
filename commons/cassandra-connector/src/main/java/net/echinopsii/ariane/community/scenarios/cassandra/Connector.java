@@ -21,11 +21,16 @@ package net.echinopsii.ariane.community.scenarios.cassandra;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Properties;
 
 public class Connector {
+
+    private final static Logger log = LoggerFactory.getLogger(Connector.class);
+
     public final static String PROPS_FIELD_CASS_CONTACT_POINTS = "cassandra.contact_points";
     public final static String PROPS_FIELD_CASS_KEYSPACE       = "cassandra.keyspace";
     public final static String PROPS_FIELD_CASS_REP_STRAT      = "cassandra.keyspace.replication_strategy";
@@ -40,6 +45,7 @@ public class Connector {
     private Session session;
 
     public Connector(Properties conf) {
+        log.debug("Provided Cassandra configuration : {}", new Object[]{conf.toString()});
         this.contactPoints = ((String) conf.get(PROPS_FIELD_CASS_CONTACT_POINTS)).split(",");
         this.keySpace = (String) conf.get(PROPS_FIELD_CASS_KEYSPACE);
         if (conf.containsKey(PROPS_FIELD_CASS_REP_STRAT))

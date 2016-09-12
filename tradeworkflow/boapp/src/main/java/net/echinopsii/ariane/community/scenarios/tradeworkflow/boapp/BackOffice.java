@@ -24,6 +24,8 @@ import net.echinopsii.ariane.community.messaging.api.MomClient;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 import net.echinopsii.ariane.community.messaging.api.MomMsgTranslator;
 import net.echinopsii.ariane.community.scenarios.cassandra.Connector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +35,8 @@ import java.util.Properties;
 
 public class BackOffice {
 
+    private final static Logger log = LoggerFactory.getLogger(BackOffice.class);
+
     class BackOfficeWorker implements AppMsgWorker {
         private Connector cassandraConnector;
 
@@ -41,8 +45,8 @@ public class BackOffice {
         }
 
         public Map<String, Object> apply(Map<String, Object> message) {
-            System.out.println("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            log.debug("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+                      message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 if (this.cassandraConnector==null)
                     new Thread().sleep(1000);
@@ -55,7 +59,7 @@ public class BackOffice {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            //System.out.println("Back Office return DONE");
+            log.debug("Back Office return DONE");
             Map<String, Object> reply = new HashMap<String, Object>();
             reply.put(MomMsgTranslator.MSG_BODY, "DONE");
             return reply;
@@ -78,13 +82,13 @@ public class BackOffice {
                         "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) )";
                 cassandraConnector.getSession().execute(tableCreationStatement);
             } catch (Exception e) {
-                System.err.println("Error while initializing Cassandra connector : " + e.getMessage());
-                System.err.println("Provided Cassandra contact points: " + properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS));
-                System.err.println("Provided Cassandra keyspace : " + properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE));
+                log.error("Error while initializing Cassandra connector : " + e.getMessage());
+                log.error("Provided Cassandra contact points: " + properties.get(Connector.PROPS_FIELD_CASS_CONTACT_POINTS));
+                log.error("Provided Cassandra keyspace : " + properties.get(Connector.PROPS_FIELD_CASS_KEYSPACE));
                 if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_STRAT))
-                    System.err.println("Provided Cassandra replication strategy: " + properties.get(Connector.PROPS_FIELD_CASS_REP_STRAT));
+                    log.error("Provided Cassandra replication strategy: " + properties.get(Connector.PROPS_FIELD_CASS_REP_STRAT));
                 if (properties.containsKey(Connector.PROPS_FIELD_CASS_REP_FACTOR))
-                    System.err.println("Provided Cassandra replication factors : " + properties.get(Connector.PROPS_FIELD_CASS_REP_FACTOR));
+                    log.error("Provided Cassandra replication factors : " + properties.get(Connector.PROPS_FIELD_CASS_REP_FACTOR));
                 cassandraConnector = null;
             }
 
@@ -94,17 +98,17 @@ public class BackOffice {
             try {
                 momClient = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM momClient : " + e.getMessage());
-                System.err.println("Provided MoM momClient : " + properties.get(MomClient.MOM_CLI));
+                log.error("Error while loading MoM momClient : " + e.getMessage());
+                log.error("Provided MoM momClient : " + properties.get(MomClient.MOM_CLI));
                 return;
             }
 
             try {
                 momClient.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM Client : " + e.getMessage());
-                System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
-                System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
+                log.error("Error while initializing MoM Client : " + e.getMessage());
+                log.error("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
+                log.error("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
                 momClient = null;
                 return;
             }
@@ -113,12 +117,12 @@ public class BackOffice {
                 backOfficeQueue = properties.getProperty(PROPS_FIELD_BOQUEUE);
 
             momClient.getServiceFactory().requestService(backOfficeQueue, new BackOfficeWorker(this.cassandraConnector));
-            //System.out.println("Back office waiting requests on " + backOfficeQueue + "...");
+            log.info("Back office waiting requests on " + backOfficeQueue + "...");
         }
     }
 
     public void stop() throws Exception {
-        System.out.println("Stop Back Office ...");
+        log.info("Stop Back Office ...");
         if (cassandraConnector != null)
             cassandraConnector.stop();
         if (momClient !=null)
@@ -130,7 +134,7 @@ public class BackOffice {
         Properties properties = new Properties();
         InputStream conf = backoffice.getClass().getResourceAsStream("/backoffice.properties");
         if (conf==null) {
-            //System.out.println("Configuration file backoffice.properties not found in the classpath");
+            log.debug("Configuration file backoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

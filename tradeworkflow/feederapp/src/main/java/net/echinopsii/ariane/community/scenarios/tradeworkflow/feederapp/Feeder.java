@@ -26,8 +26,13 @@ import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class Feeder {
+
+    private final static Logger log = LoggerFactory.getLogger(Feeder.class);
 
     class StockFeeder implements AppMsgFeeder {
         private String stockName;
@@ -42,7 +47,7 @@ public class Feeder {
             ret.put("NAME", stockName);
             long price = (long)(Math.random() * 10 + Math.random() * 100 + Math.random() * 1000);
             ret.put("PRICE", price);
-            System.out.println("name : " + stockName + "; price : " + price);
+            log.debug("name : " + stockName + "; price : " + price);
             return ret;
         }
 
@@ -62,17 +67,17 @@ public class Feeder {
             try {
                 client = MomClientFactory.make((String)properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM client : " + e.getMessage());
-                System.err.println("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
+                log.error("Error while loading MoM client : " + e.getMessage());
+                log.error("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
                 return ;
             }
 
             try {
                 client.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM client : " + e.getMessage());
-                System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
-                System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
+                log.error("Error while initializing MoM client : " + e.getMessage());
+                log.error("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
+                log.error("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
                 client = null;
                 return;
             }
@@ -83,21 +88,21 @@ public class Feeder {
             if (properties.getProperty(PROPS_FIELS_STOCKSLIST)!=null) {
                 String[] stockNamesList = ((String) properties.getProperty(PROPS_FIELS_STOCKSLIST)).split(",");
                 for (String stockName : stockNamesList) {
-                    //System.out.println("Load stock " + stockName + " feeder on baseTopic " + baseTopic + "...");
+                    log.debug("Load stock " + stockName + " feeder on baseTopic " + baseTopic + "...");
                     StockFeeder stockFeeder = new StockFeeder(stockName);
                     client.getServiceFactory().feederService(baseTopic, stockName, stockFeeder.getInterval(), stockFeeder);
                 }
             } else {
-                System.err.println("No stocks provided !");
+                log.error("No stocks provided !");
                 return;
             }
         } else {
-            System.err.println("MoM client implementation must be provided");
+            log.error("MoM client implementation must be provided");
         }
     }
 
     public void stop() throws Exception {
-        System.out.println("Stop feeder ...");
+        log.info("Stop feeder ...");
         if (client!=null)
             client.close();
     }
@@ -107,7 +112,7 @@ public class Feeder {
         Properties properties = new Properties();
         InputStream conf = feeder.getClass().getResourceAsStream("/feeder.properties");
         if (conf==null) {
-            System.err.println("Configuration file feeder.properties not found in the classpath");
+            log.error("Configuration file feeder.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

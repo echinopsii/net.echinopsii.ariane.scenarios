@@ -21,12 +21,16 @@ package net.echinopsii.ariane.community.scenarios.tradeworkflow.frontapp;
 
 import net.echinopsii.ariane.community.messaging.api.*;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
 public class FrontOffice {
+
+    private final static Logger log = LoggerFactory.getLogger(FrontOffice.class);
 
     class FrontOfficeWorker implements AppMsgWorker {
 
@@ -106,11 +110,11 @@ public class FrontOffice {
 
         //@Override
         public Map<String, Object> apply(Map<String, Object> message) {
-            //System.out.println(message.toString());
+            log.debug(message.toString());
             String name  = message.get("NAME").toString();
             long   price = (Long) message.get("PRICE");
 
-            //System.out.println("Received {"+ message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," +name+","+price+"}");
+            log.debug("Received {"+ message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," +name+","+price+"}");
 
             AcquiredStock allReaddyAcquired = null;
             for (AcquiredStock acquiredStock : acquiredStocks) {
@@ -125,20 +129,20 @@ public class FrontOffice {
                     message.put("ORDER", "BUY");
                     message.put("QUANTITY", stockblksize);
                     moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    //System.out.println(stockblksize + " stocks {"+name+","+price+"} acquired...");
+                    log.debug(stockblksize + " stocks {"+name+","+price+"} acquired...");
                     acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
                     position -= price*stockblksize;
-                    //System.out.println("New position : " + position);
+                    log.debug("New position : " + position);
                 }
             } else {
                 if (allReaddyAcquired.getAcquiredPrice()<(price-mindiff)) {
                     message.put("ORDER","SELL");
                     message.put("QUANTITY", stockblksize);
                     moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    //System.out.println(stockblksize+" stocks {"+name+","+price+"} sold...");
+                    log.debug(stockblksize+" stocks {"+name+","+price+"} sold...");
                     acquiredStocks.remove(allReaddyAcquired);
                     position += price*stockblksize;
-                    //System.out.println("New position : " + position);
+                    log.debug("New position : " + position);
                 }
             }
 
@@ -158,12 +162,12 @@ public class FrontOffice {
             int block_size=10;
             int min_diff=10;
             if (properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC)==null) {
-                System.err.println("Error while initializing Front Office service : feeder base topic isn't defined...");
+                log.error("Error while initializing Front Office service : feeder base topic isn't defined...");
                 return;
             }
 
             if (properties.getProperty(PROPS_FIELD_FO_MO_QUEUE)==null) {
-                System.err.println("Error while initializing Front Office service : mo queue isn't defined...");
+                log.error("Error while initializing Front Office service : mo queue isn't defined...");
                 return;
             }
 
@@ -176,17 +180,17 @@ public class FrontOffice {
             try {
                 client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM client : " + e.getMessage());
-                System.err.println("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
+                log.error("Error while loading MoM client : " + e.getMessage());
+                log.error("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
                 return;
             }
 
             try {
                 client.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM client : " + e.getMessage());
-                System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
-                System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
+                log.error("Error while initializing MoM client : " + e.getMessage());
+                log.error("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
+                log.error("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
                 client = null;
                 return;
             }
@@ -195,12 +199,12 @@ public class FrontOffice {
                                                          new FrontOfficeWorker(client,
                                                                                /*properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),*/
                                                                                properties.getProperty(PROPS_FIELD_FO_MO_QUEUE), min_diff, block_size));
-            //System.out.println("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));
+            log.debug("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));
         }
     }
 
     public void stop() throws Exception {
-        System.out.println("Stop front office...");
+        log.info("Stop front office...");
         if (client!=null)
             client.close();
     }
@@ -210,7 +214,7 @@ public class FrontOffice {
         Properties properties = new Properties();
         InputStream conf = frontoffice.getClass().getResourceAsStream("/frontoffice.properties");
         if (conf==null) {
-            System.err.println("Configuration file frontoffice.properties not found in the classpath");
+            log.error("Configuration file frontoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

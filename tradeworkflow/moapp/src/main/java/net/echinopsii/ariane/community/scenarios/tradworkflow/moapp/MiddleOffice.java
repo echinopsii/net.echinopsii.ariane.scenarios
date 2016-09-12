@@ -21,6 +21,8 @@ package net.echinopsii.ariane.community.scenarios.tradworkflow.moapp;
 
 import net.echinopsii.ariane.community.messaging.api.*;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +30,8 @@ import java.util.Map;
 import java.util.Properties;
 
 public class MiddleOffice {
+
+    private final static Logger log = LoggerFactory.getLogger(MiddleOffice.class);
 
     class RiskReplyWorker implements AppMsgWorker {
         public Map<String, Object> apply(Map<String, Object> message) {
@@ -56,20 +60,19 @@ public class MiddleOffice {
             boRexec = client.createRequestExecutor();
         }
 
-        //@Override
         public Map<String, Object> apply(final Map<String, Object> message) {
-            //System.out.println("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-            //                   message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            log.debug("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+                      message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             Map<String, Object> reply = riskRexec.RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
-            //System.out.println("Forward front request to risk service : DONE");
+            log.debug("Forward front request to risk service : DONE");
 
             new Thread(new Runnable() {
                 //@Override
                 public void run() {
-                    //System.out.println("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                    //                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                    log.debug("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+                              message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
                     boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
-                    //System.out.println("Forward front request to back office : DONE");
+                    log.debug("Forward front request to back office : DONE");
                 }
             }).start();
 
@@ -89,29 +92,29 @@ public class MiddleOffice {
     public void start(Properties properties) {
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
             if (properties.getProperty(PROPS_FIELD_MO_BOQUEUE)==null) {
-                System.err.println("Error while initializing Middle Office service : back office queue isn't defined...");
+                log.error("Error while initializing Middle Office service : back office queue isn't defined...");
                 return;
             }
 
             if (properties.getProperty(PROPS_FIELD_MO_RSKQUEUE)==null) {
-                System.err.println("Error while initializing Middle Office service : risk queue isn't defined...");
+                log.error("Error while initializing Middle Office service : risk queue isn't defined...");
                 return;
             }
 
             try {
                 client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM client : " + e.getMessage());
-                System.err.println("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
+                log.error("Error while loading MoM client : " + e.getMessage());
+                log.error("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
                 return;
             }
 
             try {
                 client.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM client : " + e.getMessage());
-                System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
-                System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
+                log.error("Error while initializing MoM client : " + e.getMessage());
+                log.error("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
+                log.error("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
                 client = null;
                 return;
             }
@@ -122,7 +125,7 @@ public class MiddleOffice {
             client.getServiceFactory().requestService(moQueue, new MiddleOfficeWorker(client,
                                                       properties.getProperty(PROPS_FIELD_MO_RSKQUEUE),
                                                       properties.getProperty(PROPS_FIELD_MO_BOQUEUE)));
-            //System.out.println("Middle office waiting requests on " + moQueue + "...");
+            log.debug("Middle office waiting requests on " + moQueue + "...");
         }
     }
 
@@ -137,7 +140,7 @@ public class MiddleOffice {
         Properties properties = new Properties();
         InputStream conf = middleoffice.getClass().getResourceAsStream("/middleoffice.properties");
         if (conf==null) {
-            System.err.println("Configuration file middleoffice.properties not found in the classpath");
+            log.error("Configuration file middleoffice.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);

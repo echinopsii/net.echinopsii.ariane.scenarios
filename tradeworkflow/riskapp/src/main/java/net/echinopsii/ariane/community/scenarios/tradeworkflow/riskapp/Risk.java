@@ -23,6 +23,8 @@ import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
 import net.echinopsii.ariane.community.messaging.api.MomClient;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
 import net.echinopsii.ariane.community.messaging.api.MomMsgTranslator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,18 +34,20 @@ import java.util.Properties;
 
 public class Risk {
 
+    private final static Logger log = LoggerFactory.getLogger(Risk.class);
+
     class RiskWorker implements AppMsgWorker {
         //@Override
         public Map<String, Object> apply(Map<String, Object> message) {
-            //System.out.println("Risk service work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-            //                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            log.debug("Risk service work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
+                      message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             try {
                 new Thread().sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            //System.out.println("Risk service return OK");
+            log.debug("Risk service return OK");
             Map<String, Object> reply = new HashMap<String, Object>();
             reply.put(MomMsgTranslator.MSG_BODY, "OK");
             return reply;
@@ -60,17 +64,17 @@ public class Risk {
             try {
                 client = MomClientFactory.make((String) properties.get(MomClient.MOM_CLI));
             } catch (Exception e) {
-                System.err.println("Error while loading MoM client : " + e.getMessage());
-                System.err.println("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
+                log.error("Error while loading MoM client : " + e.getMessage());
+                log.error("Provided MoM client : " + properties.get(MomClient.MOM_CLI));
                 return;
             }
 
             try {
                 client.init(properties);
             } catch (Exception e) {
-                System.err.println("Error while initializing MoM client : " + e.getMessage());
-                System.err.println("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
-                System.err.println("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
+                log.error("Error while initializing MoM client : " + e.getMessage());
+                log.error("Provided MoM host : " + properties.get(MomClient.MOM_HOST));
+                log.error("Provided MoM port : " + properties.get(MomClient.MOM_PORT));
                 client = null;
                 return;
             }
@@ -79,12 +83,12 @@ public class Risk {
                 riskQueue = properties.getProperty(PROPS_FIELD_RSKQUEUE);
 
             client.getServiceFactory().requestService(riskQueue, new RiskWorker());
-            //System.out.println("Risk service waiting requests on " + riskQueue + "...");
+            log.debug("Risk service waiting requests on " + riskQueue + "...");
         }
     }
 
     public void stop() throws Exception {
-        System.out.println("Stop risk service ...");
+        log.info("Stop risk service ...");
         if (client!=null)
             client.close();
     }
@@ -94,7 +98,7 @@ public class Risk {
         Properties properties = new Properties();
         InputStream conf = risk.getClass().getResourceAsStream("/risk.properties");
         if (conf==null) {
-            System.err.println("Configuration file risk.properties not found in the classpath");
+            log.error("Configuration file risk.properties not found in the classpath");
             System.exit(1);
         }
         properties.load(conf);
