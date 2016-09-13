@@ -51,7 +51,7 @@ public class BackOffice {
                 if (this.cassandraConnector==null)
                     new Thread().sleep(1000);
                 else {
-                    String insertStatement = "INSERT INTO back_office_orders_history(order_time, order, stock_name, stock_price, quantity) " +
+                    String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
                             "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
                             message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
                     this.cassandraConnector.getSession().execute(insertStatement);
