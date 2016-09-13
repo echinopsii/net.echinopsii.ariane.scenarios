@@ -52,29 +52,35 @@ public class BackOffice {
         public Map<String, Object> apply(Map<String, Object> message) {
             log.debug("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                       message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+            Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
+                    value("order_time", System.currentTimeMillis()).
+                    value("order_operation", message.get("ORDER")).
+                    value("stock_name", message.get("NAME")).
+                    value("stock_price", message.get("PRICE")).
+                    value("quantity", message.get("QUANTITY")).
+                    using(ttl(7776000)).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+            //String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
+            //        "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
+            //        message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
             try {
                 if (this.cassandraConnector==null)
                     new Thread().sleep(1000);
                 else {
-                    //String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
-                    //        "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
-                    //        message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
-                    Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
-                            value("order_time", System.currentTimeMillis()).
-                            value("order_operation", message.get("ORDER")).
-                            value("stock_name", message.get("NAME")).
-                            value("stock_price", message.get("PRICE")).
-                            value("quantity", message.get("QUANTITY")).
-                            using(ttl(7776000)).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
                     this.cassandraConnector.getSession().execute(insertStatement);
                 }
-            } catch (InterruptedException e) {
+                log.debug("Back Office return DONE");
+                Map<String, Object> reply = new HashMap<String, Object>();
+                reply.put(MomMsgTranslator.MSG_BODY, "DONE");
+                return reply;
+            } catch (Exception e) {
+                if (this.cassandraConnector!=null)
+                    log.error("Statement raise exception : " + insertStatement.toString());
                 e.printStackTrace();
+                log.debug("Back Office return ERROR !!!");
+                Map<String, Object> reply = new HashMap<String, Object>();
+                reply.put(MomMsgTranslator.MSG_BODY, "ERROR !!!");
+                return reply;
             }
-            log.debug("Back Office return DONE");
-            Map<String, Object> reply = new HashMap<String, Object>();
-            reply.put(MomMsgTranslator.MSG_BODY, "DONE");
-            return reply;
         }
     }
 
