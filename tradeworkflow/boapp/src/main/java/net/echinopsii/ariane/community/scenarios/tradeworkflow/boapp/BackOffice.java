@@ -19,6 +19,9 @@
 
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.boapp;
 
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
 import net.echinopsii.ariane.community.messaging.api.MomClient;
 import net.echinopsii.ariane.community.messaging.common.MomClientFactory;
@@ -32,6 +35,8 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
+import static com.datastax.driver.core.querybuilder.QueryBuilder.ttl;
 
 public class BackOffice {
 
@@ -51,9 +56,16 @@ public class BackOffice {
                 if (this.cassandraConnector==null)
                     new Thread().sleep(1000);
                 else {
-                    String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
-                            "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
-                            message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
+                    //String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
+                    //        "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
+                    //        message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
+                    Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
+                            value("order_time", System.currentTimeMillis()).
+                            value("order_operation", message.get("ORDER")).
+                            value("stock_name", message.get("NAME")).
+                            value("stock_price", message.get("PRICE")).
+                            value("quantity", message.get("QUANTITY")).
+                            using(ttl(7776000)).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
                     this.cassandraConnector.getSession().execute(insertStatement);
                 }
             } catch (InterruptedException e) {
@@ -77,9 +89,10 @@ public class BackOffice {
             cassandraConnector = new Connector(properties);
             try {
                 cassandraConnector.start();
-                String tableCreationStatement = "CREATE TABLE back_office_orders_history " +
+                String tableCreationStatement = "CREATE TABLE IF NOT EXISTS back_office_orders_history " +
                         "(order_time time, order_operation text, stock_name text, " +
-                        "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) )";
+                        "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) ) " +
+                        "WITH compaction = { 'class' : 'DateTieredCompactionStrategy' }";
                 cassandraConnector.getSession().execute(tableCreationStatement);
             } catch (Exception e) {
                 log.error("Error while initializing Cassandra connector : " + e.getMessage());
