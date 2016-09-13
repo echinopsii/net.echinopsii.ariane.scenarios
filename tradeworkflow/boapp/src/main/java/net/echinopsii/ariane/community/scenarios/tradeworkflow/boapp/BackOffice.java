@@ -53,7 +53,7 @@ public class BackOffice {
             log.debug("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                       message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
-                    value("order_time", System.currentTimeMillis()).
+                    value("order_time", "'" + System.currentTimeMillis() + "'").
                     value("order_operation", message.get("ORDER")).
                     value("stock_name", message.get("NAME")).
                     value("stock_price", message.get("PRICE")).
