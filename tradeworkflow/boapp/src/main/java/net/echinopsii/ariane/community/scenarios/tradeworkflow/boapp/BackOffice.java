@@ -101,7 +101,7 @@ public class BackOffice {
                         "(order_time timestamp, order_operation text, stock_name text, " +
                         "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) ) " +
                         "WITH compaction = { 'class' : 'DateTieredCompactionStrategy' } " +
-                        "WITH CLUSTERING ORDER BY (order_time DESC);";
+                        "AND CLUSTERING ORDER BY (order_time DESC);";
                 cassandraConnector.getSession().execute(tableCreationStatement);
             } catch (Exception e) {
                 log.error("Error while initializing Cassandra connector : " + e.getMessage());
