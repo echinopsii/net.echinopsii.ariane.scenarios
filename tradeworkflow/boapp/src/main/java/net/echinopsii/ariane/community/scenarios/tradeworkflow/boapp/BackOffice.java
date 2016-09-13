@@ -20,6 +20,7 @@
 package net.echinopsii.ariane.community.scenarios.tradeworkflow.boapp;
 
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import net.echinopsii.ariane.community.messaging.api.AppMsgWorker;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.timestamp;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.ttl;
 
 public class BackOffice {
@@ -51,9 +53,9 @@ public class BackOffice {
 
         public Map<String, Object> apply(Map<String, Object> message) {
             log.debug("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                      message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
-                    value("order_time", String.valueOf(System.currentTimeMillis())).
+                    value("order_time", timestamp(System.currentTimeMillis())).
                     value("order_operation", message.get("ORDER")).
                     value("stock_name", message.get("NAME")).
                     value("stock_price", message.get("PRICE")).
@@ -96,9 +98,10 @@ public class BackOffice {
             try {
                 cassandraConnector.start();
                 String tableCreationStatement = "CREATE TABLE IF NOT EXISTS back_office_orders_history " +
-                        "(order_time time, order_operation text, stock_name text, " +
+                        "(order_time timestamp, order_operation text, stock_name text, " +
                         "stock_price float, quantity int, PRIMARY KEY (stock_name, order_time) ) " +
-                        "WITH compaction = { 'class' : 'DateTieredCompactionStrategy' }";
+                        "WITH compaction = { 'class' : 'DateTieredCompactionStrategy' } " +
+                        "WITH CLUSTERING ORDER BY (order_time DESC);";
                 cassandraConnector.getSession().execute(tableCreationStatement);
             } catch (Exception e) {
                 log.error("Error while initializing Cassandra connector : " + e.getMessage());
