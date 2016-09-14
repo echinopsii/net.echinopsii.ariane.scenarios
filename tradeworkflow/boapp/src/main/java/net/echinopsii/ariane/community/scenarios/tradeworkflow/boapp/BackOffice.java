@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -53,32 +55,25 @@ public class BackOffice {
 
         public Map<String, Object> apply(Map<String, Object> message) {
             log.debug("Back office work on  : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
-                    message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
+                      message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
             Statement insertStatement = QueryBuilder.insertInto("back_office_orders_history").
-                    value("order_time", timestamp(System.currentTimeMillis())).
+                    value("order_time", System.currentTimeMillis()).
                     value("order_operation", message.get("ORDER")).
                     value("stock_name", message.get("NAME")).
                     value("stock_price", message.get("PRICE")).
                     value("quantity", message.get("QUANTITY")).
                     using(ttl(7776000)).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-            //String insertStatement = "INSERT INTO back_office_orders_history(order_time, order_operation, stock_name, stock_price, quantity) " +
-            //        "VALUES(" + System.currentTimeMillis()  + ", " + message.get("ORDER") + ", " + message.get("NAME") + ",  " +
-            //        message.get("PRICE") + ", " + message.get("QUANTITY") + ") USING TTL 7776000";
             try {
-                if (this.cassandraConnector==null)
-                    new Thread().sleep(1000);
-                else {
-                    this.cassandraConnector.getSession().execute(insertStatement);
-                }
+                if (this.cassandraConnector==null) new Thread().sleep(1000);
+                else this.cassandraConnector.getSession().execute(insertStatement);
                 log.debug("Back Office return DONE");
                 Map<String, Object> reply = new HashMap<String, Object>();
                 reply.put(MomMsgTranslator.MSG_BODY, "DONE");
                 return reply;
             } catch (Exception e) {
-                if (this.cassandraConnector!=null)
-                    log.error("Statement raise exception : " + insertStatement.toString());
-                e.printStackTrace();
-                log.debug("Back Office return ERROR !!!");
+                log.error("Back Office error : " + e.getMessage());
+                if (this.cassandraConnector!=null) log.error("Statement : " + insertStatement.toString());
+                if (log.isDebugEnabled()) e.printStackTrace();
                 Map<String, Object> reply = new HashMap<String, Object>();
                 reply.put(MomMsgTranslator.MSG_BODY, "ERROR !!!");
                 return reply;
