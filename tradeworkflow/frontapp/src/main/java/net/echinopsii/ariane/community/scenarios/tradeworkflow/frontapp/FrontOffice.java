@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.concurrent.TimeoutException;
 
 public class FrontOffice {
 
@@ -65,18 +66,7 @@ public class FrontOffice {
                 }
 
                 AcquiredStock that = (AcquiredStock) o;
-
-                if (acquiredPrice != that.acquiredPrice) {
-                    return false;
-                }
-                if (!date.equals(that.date)) {
-                    return false;
-                }
-                if (!stockName.equals(that.stockName)) {
-                    return false;
-                }
-
-                return true;
+                return acquiredPrice == that.acquiredPrice && date.equals(that.date) && stockName.equals(that.stockName);
             }
 
             @Override
@@ -88,6 +78,7 @@ public class FrontOffice {
             }
         }
 
+        private String frontId;
         private MomClient client;
         //private String              baseTopic;
         private String              moQueue;
@@ -98,7 +89,8 @@ public class FrontOffice {
 
         private long position;
 
-        public FrontOfficeWorker(MomClient cli, /*String topic,*/ String queue, int mindiff_, int stockblksize_) {
+        public FrontOfficeWorker(String frontId_,MomClient cli, /*String topic,*/ String queue, int mindiff_, int stockblksize_) {
+            frontId = frontId_;
             client    = cli;
             //baseTopic = topic;
             moQueue   = queue;
@@ -126,23 +118,32 @@ public class FrontOffice {
 
             if (allReaddyAcquired==null) {
                 if (price * stockblksize < position) {
+                    message.put("FRONTID", frontId);
                     message.put("ORDER", "BUY");
                     message.put("QUANTITY", stockblksize);
-                    moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    log.debug(stockblksize + " stocks {"+name+","+price+"} acquired...");
-                    acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
-                    position -= price*stockblksize;
-                    log.debug("New position : " + position);
+                    try {
+                        moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
+                        log.debug(stockblksize + " stocks {"+name+","+price+"} acquired...");
+                        acquiredStocks.add(new AcquiredStock(name, price, stockblksize));
+                        position -= price*stockblksize;
+                        log.debug("New position : " + position);
+                    } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    }
                 }
             } else {
                 if (allReaddyAcquired.getAcquiredPrice()<(price-mindiff)) {
                     message.put("ORDER","SELL");
                     message.put("QUANTITY", stockblksize);
-                    moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
-                    log.debug(stockblksize+" stocks {"+name+","+price+"} sold...");
-                    acquiredStocks.remove(allReaddyAcquired);
-                    position += price*stockblksize;
-                    log.debug("New position : " + position);
+                    try {
+                        moRexec.RPC(message, moQueue, client.getClientID()+"Q", null);
+                        log.debug(stockblksize+" stocks {"+name+","+price+"} sold...");
+                        acquiredStocks.remove(allReaddyAcquired);
+                        position += price*stockblksize;
+                        log.debug("New position : " + position);
+                    } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 
@@ -151,16 +152,24 @@ public class FrontOffice {
     }
 
 
+    private static final String PROPS_FIELD_FO_FRONT_ID          = "front_office.front_id";
     private static final String PROPS_FIELD_FO_FEEDER_BASE_TOPIC = "front_office.feeder_base_topic";
     private static final String PROPS_FIELD_FO_MO_QUEUE          = "front_office.mo_queue";
     private static final String PROPS_FIELD_FO_STOCKS_BLOCK_SIZE = "front_office.stocks_block_size";
     private static final String PROPS_FIELD_FO_STOCK_SOLD_MINDIF = "front_office.stocks_sold_mindif";
     private MomClient client = null;
+    private String frontID = null;
 
     public void start(Properties properties) {
         if (properties != null && properties.get(MomClient.MOM_CLI) != null && properties.get(MomClient.MOM_CLI) instanceof String) {
             int block_size=10;
             int min_diff=10;
+
+            if (properties.getProperty(PROPS_FIELD_FO_FRONT_ID)==null) {
+                log.error("Error while initializing Front Office service : front id isn't defined...");
+                return;
+            }
+
             if (properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC)==null) {
                 log.error("Error while initializing Front Office service : feeder base topic isn't defined...");
                 return;
@@ -196,7 +205,7 @@ public class FrontOffice {
             }
 
             client.getServiceFactory().subscriberService(properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),null,
-                                                         new FrontOfficeWorker(client,
+                                                         new FrontOfficeWorker(frontID, client,
                                                                                /*properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC),*/
                                                                                properties.getProperty(PROPS_FIELD_FO_MO_QUEUE), min_diff, block_size));
             log.debug("Subscribed to topic " + properties.getProperty(PROPS_FIELD_FO_FEEDER_BASE_TOPIC));

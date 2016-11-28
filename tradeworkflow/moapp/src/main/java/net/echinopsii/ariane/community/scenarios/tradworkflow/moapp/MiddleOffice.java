@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 public class MiddleOffice {
 
@@ -63,16 +64,25 @@ public class MiddleOffice {
         public Map<String, Object> apply(final Map<String, Object> message) {
             log.debug("Forward front request to risk service : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                       message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-            Map<String, Object> reply = riskRexec.RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
-            log.debug("Forward front request to risk service : DONE");
+            Map<String, Object> reply = null;
+            try {
+                reply = riskRexec.RPC(message, risk_queue, client.getClientID()+"Q01", new RiskReplyWorker());
+                log.debug("Forward front request to risk service : DONE");
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            }
 
             new Thread(new Runnable() {
                 //@Override
                 public void run() {
                     log.debug("Forward front request to back office : {" + message.get(MomMsgTranslator.MSG_APPLICATION_ID) + "," + message.get("NAME") + "," +
                               message.get("PRICE") + "," + message.get("ORDER") + "," + message.get("QUANTITY") + " }...");
-                    boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
-                    log.debug("Forward front request to back office : DONE");
+                    try {
+                        boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
+                        log.debug("Forward front request to back office : DONE");
+                    } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    }
                 }
             }).start();
 
