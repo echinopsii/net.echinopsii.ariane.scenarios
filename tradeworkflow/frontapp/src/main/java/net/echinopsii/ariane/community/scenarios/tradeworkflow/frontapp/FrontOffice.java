@@ -129,6 +129,10 @@ public class FrontOffice {
                         log.debug("New position : " + position);
                     } catch (TimeoutException e) {
                         e.printStackTrace();
+                    } catch (MomException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             } else {
@@ -142,6 +146,10 @@ public class FrontOffice {
                         position += price*stockblksize;
                         log.debug("New position : " + position);
                     } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    } catch (MomException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }

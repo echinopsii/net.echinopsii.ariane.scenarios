@@ -70,6 +70,10 @@ public class MiddleOffice {
                 log.debug("Forward front request to risk service : DONE");
             } catch (TimeoutException e) {
                 e.printStackTrace();
+            } catch (MomException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
             new Thread(new Runnable() {
@@ -81,6 +85,10 @@ public class MiddleOffice {
                         boRexec.RPC(message, bo_queue, client.getClientID()+"Q02", new BOReplyWorker());
                         log.debug("Forward front request to back office : DONE");
                     } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    } catch (MomException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
